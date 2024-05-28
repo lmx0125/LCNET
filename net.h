@@ -15,7 +15,13 @@
 #include <mutex>
 #include "log.h"
 
-struct device {
+struct connect_device {
+	SOCKET sock;
+	sockaddr_in sock_addr;
+	unsigned long ID;
+};
+
+struct recv_device {
 	SOCKET sock;
 	sockaddr_in sock_addr;
 	unsigned long ID;
@@ -38,12 +44,14 @@ public:
 	static void Cleanup(int signum);
 	void service();
 	void send(CString message, unsigned long ID);
-	void auto_print_recv(device this_device);
-	void connect(char *addr, UINT port);
-	
+	void auto_print_recv(recv_device this_device);
+	unsigned long connect(char *addr, UINT port);
+
+
+	std::vector<connect_device *> connect_devices;
 	std::vector<recv_async_struct *> auto_receive_list;
-	std::vector<device> connect_devices;
-	device newDevice;
+	std::vector<recv_device> recv_devices;
+	recv_device newDevice;
 	UINT PORT, err;
 	SOCKET sock;
 	sockaddr_in sock_addr;

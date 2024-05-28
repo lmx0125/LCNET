@@ -67,26 +67,26 @@ void NET::Cleanup(int signum) {
 void NET::service() {
 	//set some common val
 	int size_of_struct;
-	recv_async_struct new_async;
+	recv_async_struct *new_async;
 	CString str;
 
 	while (is_service_on) {
 		//add a new device
-		connect_devices.push_back(newDevice);
+		recv_devices.push_back(newDevice);
 
 		//set a unique ID
-		connect_devices[connect_devices.size() - 1].ID =
+		recv_devices[recv_devices.size() - 1].ID =
 			(rand() % 10000) * 1000000 +
 			(rand() % 10000) * 1000 +
 			(rand() % 10000) * 1;
 
 		//Set the size of the sockaddr size
-		size_of_struct = sizeof(connect_devices[connect_devices.size() - 1].sock_addr);
+		size_of_struct = sizeof(recv_devices[recv_devices.size() - 1].sock_addr);
 
 		//accept the request
-		connect_devices[connect_devices.size() - 1].sock = accept(
+		recv_devices[recv_devices.size() - 1].sock = accept(
 			sock,
-			(sockaddr*)&connect_devices[connect_devices.size() - 1].sock_addr,
+			(sockaddr*)&recv_devices[recv_devices.size() - 1].sock_addr,
 			&size_of_struct
 		);
 
@@ -94,17 +94,18 @@ void NET::service() {
 		Show_log(_DEBU, str);
 
 		//Add the async to the list
-		new_async.futu = std::async(
+		new_async = new recv_async_struct;
+		new_async->futu = std::async(
 			std::launch::async,
 			&::NET::auto_print_recv,
 			this,
-			connect_devices[connect_devices.size() - 1]
+			recv_devices[recv_devices.size() - 1]
 		);
-		new_async.ID = connect_devices[connect_devices.size() - 1].ID;
+		new_async->ID = recv_devices[recv_devices.size() - 1].ID;
 
 		//Add into the list
-		str.Format("New device[ ID > %ul ] added", connect_devices[connect_devices.size() - 1].ID);
-		auto_receive_list.push_back(&new_async);
+		str.Format("New device[ ID > %ul ] added", recv_devices[recv_devices.size() - 1].ID);
+		auto_receive_list.push_back(new_async);
 
 		Show_log(_MSG, str);
 	}
@@ -112,8 +113,8 @@ void NET::service() {
 
 void NET::send(CString message, unsigned long ID) {
 	//Get the device
-	device this_device;
-	for ( auto temp : connect_devices ) {
+	recv_device this_device;
+	for ( auto temp : recv_devices ) {
 		if (temp.ID == ID) {
 			this_device = temp;
 			break;
@@ -129,7 +130,7 @@ void NET::send(CString message, unsigned long ID) {
 	);
 }
 
-void NET::auto_print_recv(device this_device) {
+void NET::auto_print_recv(recv_device this_device) {
 	//Set data mem
 	char data[4096 + 1];
 	int data_size = 0;
@@ -169,14 +170,14 @@ void NET::auto_print_recv(device this_device) {
 	);
 
 	task_line_num = 0;
-	for (auto dev : connect_devices)
+	for (auto dev : recv_devices)
 		if (dev.ID != this_device.ID) {
 			task_line_num++;
 		}
 		else
 			break;
-	connect_devices.erase(
-		connect_devices.begin() + task_line_num
+	recv_devices.erase(
+		recv_devices.begin() + task_line_num
 	);
 	mtx.unlock();
 
@@ -184,6 +185,47 @@ void NET::auto_print_recv(device this_device) {
 	Show_log(_MSG, str);
 }
 
-void connect(char* addr, UINT port) {
+unsigned long NET::connect(char* addr, UINT port) {
+	//setup a new connection
+	sockaddr_in connect_sockaddr;
+	connect_sockaddr.sin_addr.S_un.S_addr = inet_addr(addr);
+	connect_sockaddr.sin_port = htons(port);
+	connect_sockaddr.sin_family = AF_INET;
+
+	//add to the devices' list
+	connect_device* device = new connect_device;
+	mtx.lock();
+	connect_devices.push_back(device);
+	int device_no = connect_devices.size() - 1;
+
+	connect_devices[device_no]->sock = socket(
+		AF_INET,
+		SOCK_STREAM,
+		IPPROTO_TCP
+	);
+
+	connect_devices[device_no]->sock_addr = connect_sockaddr;
+
+	connect_devices[device_no]->ID =
+		(rand() % 10000) * 1000000 +
+		(rand() % 10000) * 1000 +
+		(rand() % 10000) * 1;
+
+	//connect the target device
+	::connect(
+		connect_devices[device_no]->sock,
+		(sockaddr*)&connect_devices[device_no]->sock_addr,
+		sizeof(connect_devices[device_no]->sock_addr)
+	);
 	
+	CString str;
+	str.Format("New device connect [ ID > %ul ] ", connect_devices[device_no]->ID);
+
+	unsigned long ID = connect_devices[device_no]->ID;
+
+	mtx.unlock();
+
+	Show_log(_MSG, str);
+
+	return ID;
 }
