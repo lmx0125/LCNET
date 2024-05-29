@@ -186,6 +186,8 @@ void NET::auto_print_recv(recv_device this_device) {
 }
 
 unsigned long NET::connect(char* addr, UINT port) {
+	CString str;
+	
 	//setup a new connection
 	sockaddr_in connect_sockaddr;
 	connect_sockaddr.sin_addr.S_un.S_addr = inet_addr(addr);
@@ -194,38 +196,40 @@ unsigned long NET::connect(char* addr, UINT port) {
 
 	//add to the devices' list
 	connect_device* device = new connect_device;
-	mtx.lock();
-	connect_devices.push_back(device);
-	int device_no = connect_devices.size() - 1;
 
-	connect_devices[device_no]->sock = socket(
+	device->sock = socket(
 		AF_INET,
 		SOCK_STREAM,
 		IPPROTO_TCP
 	);
 
-	connect_devices[device_no]->sock_addr = connect_sockaddr;
+	device->sock_addr = connect_sockaddr;
 
-	connect_devices[device_no]->ID =
+	device->ID =
 		(rand() % 10000) * 1000000 +
 		(rand() % 10000) * 1000 +
 		(rand() % 10000) * 1;
 
 	//connect the target device
-	::connect(
-		connect_devices[device_no]->sock,
-		(sockaddr*)&connect_devices[device_no]->sock_addr,
-		sizeof(connect_devices[device_no]->sock_addr)
+	int err = ::connect(
+		device->sock,
+		(sockaddr*)&device->sock_addr,
+		sizeof(device->sock_addr)
 	);
+
+	if (err == SOCKET_ERROR) {
+		str.Format("socket error when connect a device , WSA error code is %d", WSAGetLastError());
+		Show_log(_ERROR, str);
+		return 0;
+	}
 	
-	CString str;
-	str.Format("New device connect [ ID > %ul ] ", connect_devices[device_no]->ID);
+	str.Format("New device connect [ ID > %ul ] ", device->ID);
 
-	unsigned long ID = connect_devices[device_no]->ID;
-
+	mtx.lock();
+	connect_devices.push_back(device);
 	mtx.unlock();
 
 	Show_log(_MSG, str);
 
-	return ID;
+	return device->ID;
 }
