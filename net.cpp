@@ -1,9 +1,6 @@
 #include "net.h"
 
 NET::NET() {
-
-	CString str;
-
 	//Set exit signal
 	signal(SIGABRT,&NET::Cleanup);
 	signal(SIGFPE, &NET::Cleanup);
@@ -168,31 +165,8 @@ void NET::auto_print_recv(recv_device this_device) {
 		Show_log(_RECV, data);
 	}
 
-	//Find the async in the list
-	int task_line_num = 0;
-	mtx.lock();
-
-	//Del it
-	for ( auto dev : auto_receive_list )
-		if ( dev->ID != this_device.ID) {
-			task_line_num++;
-		}
-
-	auto_receive_list.erase(
-		auto_receive_list.begin() + task_line_num
-	);
-
-	task_line_num = 0;
-	for (auto dev : recv_devices)
-		if (dev->ID != this_device.ID) {
-			task_line_num++;
-		}
-		else
-			break;
-	recv_devices.erase(
-		recv_devices.begin() + task_line_num
-	);
-	mtx.unlock();
+	//shut it down
+	disconnect(this_device.ID);
 
 	str.Format("Device[ ID > %ul ] disconnect" , this_device.ID);
 	Show_log(_MSG, str);
