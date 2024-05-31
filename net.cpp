@@ -168,7 +168,6 @@ void NET::auto_print_recv(recv_device this_device) {
 	//shut it down
 	disconnect(this_device.ID);
 
-	str.Format("Device[ ID > %ul ] disconnect" , this_device.ID);
 	Show_log(_MSG, str);
 }
 
@@ -222,6 +221,7 @@ unsigned long NET::connect(const char* addr, UINT port) {
 }
 
 bool NET::disconnect(unsigned long ID) {
+	CString str;
 	int device_no;
 	mtx.lock();
 	if (( device_no = find_device(ID,connect_devices) ) != -1) {
@@ -231,6 +231,10 @@ bool NET::disconnect(unsigned long ID) {
 			device->sock,
 			SD_BOTH
 		);
+
+		str.Format("a device disconnect [ device ID > %ul ]", device->ID);
+		Show_log(_MSG, str);
+
 		delete connect_devices[device_no];
 		connect_devices.erase(connect_devices.begin() + device_no);
 		return true;
@@ -243,11 +247,18 @@ bool NET::disconnect(unsigned long ID) {
 			device->sock,
 			SD_BOTH
 		);
+
+		str.Format("a device disconnect [ device ID > %ul ]", device->ID);
+		Show_log(_MSG, str);
+
 		delete recv_devices[device_no];
 		recv_devices.erase(recv_devices.begin() + device_no);
 		return true;
 	}
 	
+	str.Format("invalid ID");
+	Show_log(_ERROR, str);
+
 	mtx.unlock();
 	return false;
 }
