@@ -1,6 +1,6 @@
 # Usage
 
-A lib can make net connection easier!
+A lib can make net connection easier!<br>
 (just support on Windows now)
 
 ## Build
