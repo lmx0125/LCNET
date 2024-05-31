@@ -13,6 +13,7 @@
 #include <time.h>
 #include <future>
 #include <mutex>
+#include <atlstr.h>
 #include "log.h"
 
 struct device_struct {
@@ -50,7 +51,6 @@ public:
 	std::vector<connect_device *> connect_devices;
 	std::vector<recv_async_struct *> auto_receive_list;
 	std::vector<recv_device *> recv_devices;
-	recv_device *newDevice;
 	UINT PORT, err;
 	SOCKET sock;
 	sockaddr_in sock_addr;

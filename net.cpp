@@ -72,6 +72,7 @@ void NET::service() {
 
 	while (is_service_on) {
 		//add a new device
+		device_struct* newDevice = new device_struct;
 		recv_devices.push_back(newDevice);
 
 		//set a unique ID
@@ -256,6 +257,8 @@ bool NET::disconnect(unsigned long ID) {
 			device->sock,
 			SD_BOTH
 		);
+		delete connect_devices[device_no];
+		connect_devices.erase(connect_devices.begin() + device_no);
 		return true;
 	}
 
@@ -266,6 +269,8 @@ bool NET::disconnect(unsigned long ID) {
 			device->sock,
 			SD_BOTH
 		);
+		delete recv_devices[device_no];
+		recv_devices.erase(recv_devices.begin() + device_no);
 		return true;
 	}
 	
