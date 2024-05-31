@@ -17,6 +17,8 @@ A lib can make net connection easier!<br>
     #include "net.h"
     ```
 
+>If you are using visual studio or etc., you may link ws2_32.lib
+
 2. **Build it**
 
 just build it
