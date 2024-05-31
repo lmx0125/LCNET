@@ -110,6 +110,10 @@ void NET::service() {
 }
 
 void NET::send(CString message, unsigned long ID) {
+
+	int err; 
+	CString str;
+
 	//Get the device
 	device_struct *this_device = nullptr;
 	for ( auto temp : connect_devices ) {
@@ -132,12 +136,20 @@ void NET::send(CString message, unsigned long ID) {
 		return;
 
 	//Send a message to the address
-	::send(
+	err = ::send(
 		this_device->sock,
 		message,
 		sizeof(message),
 		0
 	);
+
+	if (err == SOCKET_ERROR) {
+		str.Format("send error,WSA error code is %d", WSAGetLastError());
+		Show_log(_ERROR, str);
+		return;
+	}
+
+	Show_log(_MSG, "send success");
 }
 
 void NET::auto_print_recv(recv_device this_device) {
