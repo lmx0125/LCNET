@@ -14,13 +14,16 @@
 #include <mutex>
 #include <atlstr.h>
 #include "../log.h"
+#include "../net.h"
 
 extern struct device_struct;
 
 class UDP : LOG {
 public:
 	unsigned long register_new_device(const char* addr, UINT port);
+	void delete_device(unsigned long ID);
 	
+	std::mutex mtx;
 	std::vector<device_struct*> device_list;
 };
 

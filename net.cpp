@@ -73,9 +73,9 @@ void NET::service() {
 		recv_devices.push_back(newDevice);
 
 		//set a unique ID
-		recv_devices[recv_devices.size() - 1]->ID =
-			(rand() % 10000) * 1000000 +
-			(rand() % 10000) * 1000 +
+		recv_devices[recv_devices.size() - 1]->ID = 
+			(rand() % 10000) * 100000000 +
+			(rand() % 10000) * 10000 +
 			(rand() % 10000) * 1;
 
 		//Set the size of the sockaddr size
@@ -204,8 +204,8 @@ unsigned long NET::connect(const char* addr, UINT port) {
 	device->sock_addr = connect_sockaddr;
 
 	device->ID =
-		(rand() % 10000) * 1000000 +
-		(rand() % 10000) * 1000 +
+		(rand() % 10000) * 100000000 +
+		(rand() % 10000) * 10000 +
 		(rand() % 10000) * 1;
 
 	//connect the target device
