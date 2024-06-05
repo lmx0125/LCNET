@@ -15,12 +15,16 @@
 #include <mutex>
 #include <atlstr.h>
 #include "log.h"
+#include "UDP/udp.h"
 
+#ifndef _DEVICE_STRUCT_
+#define _DEVICE_STRUCT_
 struct device_struct {
 	SOCKET sock;
 	sockaddr_in sock_addr;
 	unsigned long ID;
 };
+#endif
 
 typedef device_struct connect_device;
 typedef device_struct recv_device;
@@ -47,6 +51,8 @@ public:
 	unsigned long connect(const char* addr, UINT port);
 	bool disconnect(unsigned long ID);
 	int find_device(unsigned long ID, std::vector<device_struct*> list);
+
+	UDP udp;
 
 	std::vector<connect_device *> connect_devices;
 	std::vector<recv_async_struct *> auto_receive_list;

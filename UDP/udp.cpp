@@ -25,10 +25,15 @@ unsigned long UDP::register_new_device(const char* addr, UINT port) {
 
 void UDP::delete_device(unsigned long ID) {
 	mtx.lock();
-	for ( auto device : device_list) {
-		if (device->ID == ID)
-		{
 
+	int device_no = 0;
+	for ( auto device : device_list) {
+		if (device->ID == ID) {
+			delete device;
+			device_list.erase(
+				device_list.begin() + device_no
+			);
 		}
+		device_no++;
 	}
 }

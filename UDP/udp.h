@@ -14,9 +14,15 @@
 #include <mutex>
 #include <atlstr.h>
 #include "../log.h"
-#include "../net.h"
 
-extern struct device_struct;
+#ifndef _DEVICE_STRUCT_
+#define _DEVICE_STRUCT_
+struct device_struct {
+	SOCKET sock;
+	sockaddr_in sock_addr;
+	unsigned long ID;
+};
+#endif
 
 class UDP : LOG {
 public:
