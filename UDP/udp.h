@@ -13,6 +13,7 @@
 #include <future>
 #include <mutex>
 #include <atlstr.h>
+#include <memory>
 #include "../log.h"
 
 #ifndef _DEVICE_STRUCT_
@@ -28,6 +29,7 @@ class UDP : LOG {
 public:
 	unsigned long register_new_device(const char* addr, UINT port);
 	void delete_device(unsigned long ID);
+	void send(CString msg, unsigned long ID);
 	
 	std::mutex mtx;
 	std::vector<device_struct*> device_list;
