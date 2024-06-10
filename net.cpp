@@ -26,6 +26,9 @@ NET::NET() {
 	srand(static_cast<int>(time(nullptr)));
 	PORT = 50000 + rand() % 10000;
 
+	//setup udp module
+	udp.up(PORT + 1);
+
 	CString msg; //Show the rand Port
 	msg.Format("Open port on %u", PORT);
 	Show_log(_MSG, msg);

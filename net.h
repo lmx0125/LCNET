@@ -52,7 +52,6 @@ public:
 	bool disconnect(unsigned long ID);
 	int find_device(unsigned long ID, std::vector<device_struct*> list);
 
-	UDP udp;
 
 	std::vector<connect_device *> connect_devices;
 	std::vector<recv_async_struct *> auto_receive_list;
@@ -60,6 +59,8 @@ public:
 	UINT PORT, err;
 	SOCKET sock;
 	sockaddr_in sock_addr;
+
+	UDP udp;
 private:
 	WSADATA wsaData;
 	bool is_service_on = true;
