@@ -17,6 +17,11 @@
 #include "log.h"
 #include "UDP/udp.h"
 
+#ifndef _NET_TYPE_
+#define _NET_TYPE_
+typedef unsigned long ul;
+#endif
+
 #ifndef _DEVICE_STRUCT_
 #define _DEVICE_STRUCT_
 struct device_struct {

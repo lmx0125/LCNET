@@ -79,7 +79,7 @@ void UDP::send(CString msg, unsigned long ID) {
 			break;
 		}
 	
-	sendto(
+	int err = sendto(
 		device->sock,
 		msg,
 		sizeof(msg),
@@ -87,7 +87,6 @@ void UDP::send(CString msg, unsigned long ID) {
 		(sockaddr*)&device->sock_addr,
 		sizeof(device->sock_addr)
 	);
-	delete device;
 }
 
 void UDP::recv_service() {
@@ -129,7 +128,10 @@ void UDP::recv_service() {
 				(rand() % 10000) * 1;
 			memcpy(&ptr->device, device, sizeof(*device));
 			device_recv_data.push_back(ptr);
-			str.Format("add a new device | ip > %ul | port > %d", device->sock_addr.sin_addr.S_un.S_addr, device->sock_addr.sin_port);
+			str.Format("add a new device | ip > %ul | port > %d",
+				device->sock_addr.sin_addr.S_un.S_addr, 
+				device->sock_addr.sin_port
+			);
 			Show_log(_MSG, str);
 		}
 
