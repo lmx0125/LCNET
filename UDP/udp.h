@@ -45,8 +45,8 @@ public:
 	UDP() = default;
 	void up(UINT port);
 	unsigned long register_new_device(const char* addr, UINT port);
-	void delete_device(unsigned long ID);
-	void send(CString msg, unsigned long ID);
+	UDP& delete_device(unsigned long ID);
+	UDP& send(CString msg, unsigned long ID);
 	void recv_service();
 	int get_device_no_from_id(unsigned long ID);
 	int get_device_no_from_addr(sockaddr_in addr);

@@ -52,7 +52,7 @@ unsigned long UDP::register_new_device(const char* addr, UINT port) {
 	return device->ID;
 }
 
-void UDP::delete_device(unsigned long ID) {
+UDP& UDP::delete_device(unsigned long ID) {
 	mtx.lock();
 
 	int device_no = 0;
@@ -63,15 +63,15 @@ void UDP::delete_device(unsigned long ID) {
 				device_list.begin() + device_no
 			);
 			mtx.unlock();
-			return;
+			return *this;
 		}
 		device_no++;
 	}
-
 	mtx.unlock();
+	return *this;
 }
 
-void UDP::send(CString msg, unsigned long ID) {
+UDP& UDP::send(CString msg, unsigned long ID) {
 	device_struct* device = nullptr;
 	for (auto temp : device_list)
 		if (temp->ID == ID) {
@@ -87,6 +87,7 @@ void UDP::send(CString msg, unsigned long ID) {
 		(sockaddr*)&device->sock_addr,
 		sizeof(device->sock_addr)
 	);
+	return *this;
 }
 
 void UDP::recv_service() {
@@ -95,7 +96,7 @@ void UDP::recv_service() {
 	Show_log(_DEBU, "recv_service_udp is running");
 
 	char* buffer = new char[4097];
-	int sockaddr_size = sizeof(sockaddr), err, device_no;
+	int sockaddr_size = sizeof(sockaddr), err;
 	while (recv_service_status) {
 		device_struct* device = new device_struct;
 		err = recvfrom(
@@ -118,25 +119,21 @@ void UDP::recv_service() {
 		str.Format("recv msg > %s", buffer);
 		Show_log(_MSG, str);
 
-		mtx.lock();
-
 		if (!is_device_in_device_list(device->sock_addr)) {
-			device->ID =
-				(rand() % 10000) * 100000000 +
-				(rand() % 10000) * 10000 +
-				(rand() % 10000) * 1;
-			device_list.push_back(device);
+			register_new_device(
+				inet_ntoa(device->sock_addr.sin_addr),
+				ntohs(device->sock_addr.sin_port)
+			);
 			str.Format("add a new device | ip > %ul | port > %d",
 				device->sock_addr.sin_addr.S_un.S_addr, 
 				device->sock_addr.sin_port
 			);
 			Show_log(_MSG, str);
 		}
-
+		mtx.lock();
 		device_list[
 			get_device_no_from_addr(device->sock_addr)
 		]->data.data_CS.push_back(buffer);
-
 		mtx.unlock();
 	}
 }
@@ -148,6 +145,7 @@ int UDP::get_device_no_from_id(unsigned long ID) {
 			return device_no;
 		device_no++;
 	}
+	Show_log(_ERROR, "invalid id");
 	return -1;
 }
 
@@ -159,6 +157,7 @@ int UDP::get_device_no_from_addr(sockaddr_in addr) {
 			return device_no;
 		device_no++;
 	}
+	Show_log(_ERROR, "invalid addr");
 	return -1;
 }
 
