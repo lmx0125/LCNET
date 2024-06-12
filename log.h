@@ -16,7 +16,6 @@ class LOG {
 public:
 	void Show_log(CString log_type,CString log_msg);
 private:
-	std::mutex mtx;
 };
 
 #endif
