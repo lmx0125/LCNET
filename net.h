@@ -22,12 +22,21 @@
 typedef unsigned long ul;
 #endif
 
+#ifndef _DEVICE_RECV_DATA_STRUCT_
+#define _DEVICE_RECV_DATA_STRUCT_
+struct device_recv_data_struct {
+	std::vector<CString> data_CS;
+	std::vector<std::vector<unsigned char>> data_bin;
+};
+#endif
+
 #ifndef _DEVICE_STRUCT_
 #define _DEVICE_STRUCT_
 struct device_struct {
 	SOCKET sock;
 	sockaddr_in sock_addr;
 	unsigned long ID;
+	device_recv_data_struct data;
 };
 #endif
 
@@ -42,7 +51,7 @@ struct msg {
 };
  
 struct recv_async_struct {
-	unsigned long ID;
+	device_struct* device;
 	std::future<void> futu;
 };
 
@@ -58,9 +67,8 @@ public:
 	int find_device(unsigned long ID, std::vector<device_struct*> list);
 
 
-	std::vector<connect_device *> connect_devices;
+	std::vector<device_struct *> device_list;
 	std::vector<recv_async_struct *> auto_receive_list;
-	std::vector<recv_device *> recv_devices;
 	UINT PORT, err;
 	SOCKET sock;
 	sockaddr_in sock_addr;

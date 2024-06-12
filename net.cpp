@@ -73,21 +73,21 @@ void NET::service() {
 	while (is_service_on) {
 		//add a new device
 		device_struct* newDevice = new device_struct;
-		recv_devices.push_back(newDevice);
+		device_list.push_back(newDevice);
 
 		//set a unique ID
-		recv_devices[recv_devices.size() - 1]->ID = 
+		device_list[device_list.size() - 1]->ID =
 			(rand() % 10000) * 100000000 +
 			(rand() % 10000) * 10000 +
 			(rand() % 10000) * 1;
 
 		//Set the size of the sockaddr size
-		size_of_struct = sizeof(recv_devices[recv_devices.size() - 1]->sock_addr);
+		size_of_struct = sizeof(device_list[device_list.size() - 1]->sock_addr);
 
 		//accept the request
-		recv_devices[recv_devices.size() - 1]->sock = accept(
+		device_list[device_list.size() - 1]->sock = accept(
 			sock,
-			(sockaddr*)&recv_devices[recv_devices.size() - 1]->sock_addr,
+			(sockaddr*)&device_list[device_list.size() - 1]->sock_addr,
 			&size_of_struct
 		);
 
@@ -96,16 +96,17 @@ void NET::service() {
 
 		//Add the async to the list
 		new_async = new recv_async_struct;
+		new_async->device = new device_struct;
 		new_async->futu = std::async(
 			std::launch::async,
 			&::NET::auto_print_recv,
 			this,
-			*(recv_devices[recv_devices.size() - 1])
+			*(device_list[device_list.size() - 1])
 		);
-		new_async->ID = recv_devices[recv_devices.size() - 1]->ID;
+		new_async->device->ID = device_list[device_list.size() - 1]->ID;
 
 		//Add into the list
-		str.Format("New device[ ID > %ul ] added", recv_devices[recv_devices.size() - 1]->ID);
+		str.Format("New device[ ID > %ul ] added", device_list[device_list.size() - 1]->ID);
 		auto_receive_list.push_back(new_async);
 
 		Show_log(_MSG, str);
@@ -119,19 +120,10 @@ void NET::send(CString message, unsigned long ID) {
 
 	//Get the device
 	device_struct *this_device = nullptr;
-	for ( auto temp : connect_devices ) {
+	for ( auto temp : device_list) {
 		if (temp->ID == ID) {
 			this_device = temp;
 			break;
-		}
-	}
-
-	if (this_device == nullptr) {
-		for ( auto temp : recv_devices ) {
-			if (temp->ID == ID) {
-				this_device = temp;
-				break;
-			}
 		}
 	}
 
@@ -226,9 +218,7 @@ unsigned long NET::connect(const char* addr, UINT port) {
 	
 	str.Format("New device connect [ ID > %ul ] ", device->ID);
 
-	mtx.lock();
-	connect_devices.push_back(device);
-	mtx.unlock();
+	device_list.push_back(device);
 
 	Show_log(_MSG, str);
 
@@ -239,8 +229,8 @@ bool NET::disconnect(unsigned long ID) {
 	CString str;
 	int device_no;
 	mtx.lock();
-	if (( device_no = find_device(ID,connect_devices) ) != -1) {
-		device_struct* device = connect_devices[device_no];
+	if (( device_no = find_device(ID, device_list) ) != -1) {
+		device_struct* device = device_list[device_no];
 		mtx.unlock();
 		shutdown(
 			device->sock,
@@ -250,13 +240,13 @@ bool NET::disconnect(unsigned long ID) {
 		str.Format("a device disconnect [ device ID > %ul ]", device->ID);
 		Show_log(_MSG, str);
 
-		delete connect_devices[device_no];
-		connect_devices.erase(connect_devices.begin() + device_no);
+		delete device_list[device_no];
+		device_list.erase(device_list.begin() + device_no);
 		return true;
 	}
 
-	if ((device_no = find_device(ID, recv_devices)) != -1) {
-		device_struct* device = recv_devices[device_no];
+	if ((device_no = find_device(ID, device_list)) != -1) {
+		device_struct* device = device_list[device_no];
 		mtx.unlock();
 		shutdown(
 			device->sock,
@@ -266,8 +256,8 @@ bool NET::disconnect(unsigned long ID) {
 		str.Format("a device disconnect [ device ID > %ul ]", device->ID);
 		Show_log(_MSG, str);
 
-		delete recv_devices[device_no];
-		recv_devices.erase(recv_devices.begin() + device_no);
+		delete device_list[device_no];
+		device_list.erase(device_list.begin() + device_no);
 		return true;
 	}
 	
