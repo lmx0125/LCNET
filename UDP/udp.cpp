@@ -120,14 +120,12 @@ void UDP::recv_service() {
 
 		mtx.lock();
 
-		if (!is_device_in_recv_list(device->sock_addr)) {
-			device_recv_data_struct* ptr = new device_recv_data_struct;
-			ptr->device.ID =
+		if (!is_device_in_device_list(device->sock_addr)) {
+			device->ID =
 				(rand() % 10000) * 100000000 +
 				(rand() % 10000) * 10000 +
 				(rand() % 10000) * 1;
-			memcpy(&ptr->device, device, sizeof(*device));
-			device_recv_data.push_back(ptr);
+			device_list.push_back(device);
 			str.Format("add a new device | ip > %ul | port > %d",
 				device->sock_addr.sin_addr.S_un.S_addr, 
 				device->sock_addr.sin_port
@@ -135,13 +133,11 @@ void UDP::recv_service() {
 			Show_log(_MSG, str);
 		}
 
-		device_recv_data[
-			get_data_list_no_from_addr(device->sock_addr)
-		]->data_CS.push_back(buffer);
+		device_list[
+			get_device_no_from_addr(device->sock_addr)
+		]->data.data_CS.push_back(buffer);
 
 		mtx.unlock();
-
-		delete device;
 	}
 }
 
@@ -166,31 +162,31 @@ int UDP::get_device_no_from_addr(sockaddr_in addr) {
 	return -1;
 }
 
-int UDP::get_data_list_no_from_id(unsigned long ID) {
-	int device_no = 0;
-	for (auto device : device_recv_data) {
-		if (device->device.ID == ID)
-			return device_no;
-		device_no++;
-	}
-	return -1;
-}
+//int UDP::get_data_list_no_from_id(unsigned long ID) {
+//	int device_no = 0;
+//	for (auto device : device_list) {
+//		if (device->device.ID == ID)
+//			return device_no;
+//		device_no++;
+//	}
+//	return -1;
+//}
+//
+//int UDP::get_data_list_no_from_addr(sockaddr_in addr) {
+//	int device_no = 0;
+//	for (auto device : device_list) {
+//		if (device->device.sock_addr.sin_addr.S_un.S_addr == addr.sin_addr.S_un.S_addr &&
+//			device->device.sock_addr.sin_port == addr.sin_port)
+//			return device_no;
+//		device_no++;
+//	}
+//	return -1;
+//}
 
-int UDP::get_data_list_no_from_addr(sockaddr_in addr) {
-	int device_no = 0;
-	for (auto device : device_recv_data) {
-		if (device->device.sock_addr.sin_addr.S_un.S_addr == addr.sin_addr.S_un.S_addr &&
-			device->device.sock_addr.sin_port == addr.sin_port)
-			return device_no;
-		device_no++;
-	}
-	return -1;
-}
-
-bool UDP::is_device_in_recv_list(sockaddr_in addr) {
-	for (auto device : device_recv_data) {
-		if (device->device.sock_addr.sin_addr.S_un.S_addr == addr.sin_addr.S_un.S_addr &&
-			device->device.sock_addr.sin_port == addr.sin_port) {
+bool UDP::is_device_in_device_list(sockaddr_in addr) {
+	for (auto device : device_list) {
+		if (device->sock_addr.sin_addr.S_un.S_addr == addr.sin_addr.S_un.S_addr &&
+			device->sock_addr.sin_port == addr.sin_port) {
 			return true;
 		}
 	}

@@ -22,21 +22,21 @@
 typedef unsigned long ul;
 #endif
 
+#ifndef _DEVICE_RECV_DATA_STRUCT_
+#define _DEVICE_RECV_DATA_STRUCT_
+struct device_recv_data_struct {
+	std::vector<CString> data_CS;
+	std::vector<std::vector<unsigned char>> data_bin;
+};
+#endif
+
 #ifndef _DEVICE_STRUCT_
 #define _DEVICE_STRUCT_
 struct device_struct {
 	SOCKET sock;
 	sockaddr_in sock_addr;
 	unsigned long ID;
-};
-#endif
-
-#ifndef _DEVICE_RECV_DATA_STRUCT_
-#define _DEVICE_RECV_DATA_STRUCT_
-struct device_recv_data_struct {
-	device_struct device; 
-	std::vector<CString> data_CS;
-	std::vector<std::vector<unsigned char>> data_bin;
+	device_recv_data_struct data;
 };
 #endif
 
@@ -50,13 +50,13 @@ public:
 	void recv_service();
 	int get_device_no_from_id(unsigned long ID);
 	int get_device_no_from_addr(sockaddr_in addr);
-	int get_data_list_no_from_id(unsigned long ID);
-	int get_data_list_no_from_addr(sockaddr_in addr);
-	bool is_device_in_recv_list(sockaddr_in addr);
+	//int get_data_list_no_from_id(unsigned long ID);
+	//int get_data_list_no_from_addr(sockaddr_in addr);
+	bool is_device_in_device_list(sockaddr_in addr);
 	
 	sockaddr_in listen_addr;
 	SOCKET sock;
-	std::vector<device_recv_data_struct*> device_recv_data;
+	//std::vector<device_recv_data_struct*> device_recv_data;
 	std::mutex mtx;
 	std::vector<device_struct*> device_list;
 	bool recv_service_status = true;
