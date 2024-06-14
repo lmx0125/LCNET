@@ -18,7 +18,7 @@ void UDP::up(UINT port) {
 	);
 
 	CString str;
-	str.Format("UDP port is > %d", port);
+	str.Format("UDP port > %d", port);
 	Show_log(_MSG, str);
 
 	std::thread recv_thread(&UDP::recv_service,this);
