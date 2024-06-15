@@ -60,8 +60,8 @@ public:
 	NET();
 	static void Cleanup(int signum);
 	void service();
-	NET& send(CString message, unsigned long ID);
-	void auto_print_recv(recv_device this_device);
+	NET& send(const char* message, unsigned long ID);
+	void auto_print_recv(recv_device* this_device);
 	unsigned long connect(const char* addr, UINT port);
 	void disconnect(unsigned long ID);
 	int find_device(unsigned long ID, std::vector<device_struct*> list);

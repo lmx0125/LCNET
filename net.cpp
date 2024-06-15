@@ -67,10 +67,17 @@ void NET::Cleanup(int signum) {
 void NET::service() {
 	//set some common val
 	int size_of_struct;
-	recv_async_struct *new_async;
 	CString str;
-	device_struct* newDevice = new device_struct;
+	recv_async_struct *new_async;
+	device_struct* newDevice;
 
+	new_async = new recv_async_struct;
+	newDevice = new device_struct;
+	new_async->device = newDevice;
+
+	//Set the size of the sockaddr size
+	size_of_struct = sizeof(newDevice->sock_addr);
+	
 	while (is_service_on) {
 		//add a new device
 		device_list.push_back(newDevice);
@@ -80,9 +87,6 @@ void NET::service() {
 			(rand() % 10000) * 100000000 +
 			(rand() % 10000) * 10000 +
 			(rand() % 10000) * 1;
-
-		//Set the size of the sockaddr size
-		size_of_struct = sizeof(newDevice->sock_addr);
 
 		//accept the request
 		newDevice->sock = accept(
@@ -95,15 +99,12 @@ void NET::service() {
 		Show_log(_DEBU, str);*/
 
 		//Add the async to the list
-		new_async = new recv_async_struct;
-		new_async->device = new device_struct;
 		new_async->futu = std::async(
 			std::launch::async,
 			&::NET::auto_print_recv,
 			this,
-			*(newDevice)
+			newDevice
 		);
-		new_async->device = newDevice;
 
 		//Add into the list
 		auto_receive_list.push_back(new_async);
@@ -111,12 +112,13 @@ void NET::service() {
 		str.Format("New device[ ID > %ul ] added", newDevice->ID);
 		Show_log(_MSG, str);
 
+		new_async = new recv_async_struct;
 		newDevice = new device_struct;
+		new_async->device = newDevice;
 	}
 }
 
-NET& NET::send(CString message, unsigned long ID) {
-
+NET& NET::send(const char* message, unsigned long ID) {
 	int err; 
 	CString str;
 
@@ -136,10 +138,10 @@ NET& NET::send(CString message, unsigned long ID) {
 	err = ::send(
 		this_device->sock,
 		message,
-		sizeof(message),
+		strlen(message),
 		0
 	);
-
+	 
 	if (err == SOCKET_ERROR) {
 		str.Format("send error,WSA error code is %d", WSAGetLastError());
 		Show_log(_ERROR, str);
@@ -150,15 +152,15 @@ NET& NET::send(CString message, unsigned long ID) {
 	return *this;
 }
 
-void NET::auto_print_recv(device_struct this_device) {
+void NET::auto_print_recv(device_struct* this_device) {
 	//Set data mem
-	char data[4096 + 1];
+	char data[4096];
 	int data_size = 0;
 	CString str;
 
 	//Get the recv data and print it
 	while (data_size = recv(
-		this_device.sock,
+		this_device->sock,
 		data,
 		sizeof(data),
 		0
@@ -168,16 +170,15 @@ void NET::auto_print_recv(device_struct this_device) {
 			Show_log(_ERROR, str);
 			goto dis;
 		}
-		if (data[data_size - 1] == '\n')
-			data[data_size - 1] = '\0';
-		else
-			data[data_size] = '\0';
+		data[data_size] = '\0';
 		Show_log(_RECV, data);
+		this_device->data.data_CS.push_back(data);
+		str.Format("data_CS size > %d", this_device->data.data_CS.size());
+		Show_log(_DEBU, str);
 	}
 dis:
-
 	//shut it down
-	disconnect(this_device.ID);
+	disconnect(this_device->ID);
 }
 
 unsigned long NET::connect(const char* addr, UINT port) {
@@ -231,7 +232,7 @@ unsigned long NET::connect(const char* addr, UINT port) {
 		std::launch::async,
 		&::NET::auto_print_recv,
 		this,
-		*(device_list[find_device(device->ID, device_list)])
+		device_list[find_device(device->ID, device_list)]
 	);
 	auto_receive_list.push_back(new_async);
 
@@ -255,6 +256,9 @@ void NET::disconnect(unsigned long ID) {
 
 		int auto_recv_list_no = find_device(device->ID, auto_receive_list);
 		recv_async_struct* del_async = auto_receive_list[auto_recv_list_no];
+
+		device->data.data_bin.clear();
+		device->data.data_CS.clear();
 
 		delete del_async->device;
 		del_async->device = nullptr;
