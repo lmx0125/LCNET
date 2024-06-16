@@ -5,7 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <mutex>
-#include <atlstr.h>
+#include <string>
 
 #define _DEBU "DEBU"
 #define _MSG "MSG"
@@ -14,7 +14,7 @@
 
 class LOG {
 public:
-	void Show_log(CString log_type,CString log_msg);
+	void Show_log(std::string log_type,std::string log_msg);
 private:
 };
 

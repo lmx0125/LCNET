@@ -1,6 +1,6 @@
 #include "net.h"
 
-NET::NET() {
+NET::NET(int port) {
 	//Set exit signal
 	signal(SIGABRT,&NET::Cleanup);
 	signal(SIGFPE, &NET::Cleanup);
@@ -9,11 +9,13 @@ NET::NET() {
 	signal(SIGINT, &NET::Cleanup);
 	signal(SIGTERM,&NET::Cleanup);
 
+#ifdef _WIN32
 	//WSA init
 	WSAStartup(
 		MAKEWORD(2, 0),
 		&wsaData
 	);
+#endif //_WIN32
 
 	//Socket init
 	sock = socket(
@@ -24,13 +26,16 @@ NET::NET() {
 
 	//TCP init
 	srand(static_cast<int>(time(nullptr)));
-	PORT = 50000 + rand() % 10000;
+	if (port == 0)
+		PORT = 50000 + rand() % 10000;
+	else
+		this->PORT = port;
 
 	//setup udp module
 	udp.up(PORT + 1);
 
-	CString msg; //Show the rand Port
-	msg.Format("TCP port > %d", PORT);
+	std::string msg; //Show the rand Port
+	msg = "TCP port > " + std::to_string(PORT);
 	Show_log(_MSG, msg);
 
 	sock_addr.sin_port = htons(PORT);
@@ -43,8 +48,6 @@ NET::NET() {
 		(sockaddr*)&sock_addr,
 		sizeof(sock_addr)
 	);
-
-	err = WSAGetLastError();
 
 	Show_log(_MSG, "Create the socket successfully");
 
@@ -60,14 +63,17 @@ NET::NET() {
 }
 
 void NET::Cleanup(int signum) {
+#ifdef _WIN32
 	WSACleanup();
+#endif // _WIN32
+
 	exit(signum);
 }
 
 void NET::service() {
 	//set some common val
 	int size_of_struct;
-	CString str;
+	std::string str;
 	recv_async_struct *new_async;
 	device_struct* newDevice;
 
@@ -109,7 +115,7 @@ void NET::service() {
 		//Add into the list
 		auto_receive_list.push_back(new_async);
 
-		str.Format("New device[ ID > %ul ] added", newDevice->ID);
+		str = "New device[ ID > " + std::to_string(newDevice->ID) + " ] added";
 		Show_log(_MSG, str);
 
 		new_async = new recv_async_struct;
@@ -120,7 +126,7 @@ void NET::service() {
 
 NET& NET::send(const char* message, unsigned long ID) {
 	int err; 
-	CString str;
+	std::string str;
 
 	//Get the device
 	device_struct *this_device = nullptr;
@@ -143,8 +149,12 @@ NET& NET::send(const char* message, unsigned long ID) {
 	);
 	 
 	if (err == SOCKET_ERROR) {
-		str.Format("send error,WSA error code is %d", WSAGetLastError());
+#ifdef _WIN32
+		str = "send error,WSA error code is " + std::to_string(WSAGetLastError());
 		Show_log(_ERROR, str);
+#else
+		Show_log(_ERROR, "send message error");
+#endif
 		return *this;
 	}
 
@@ -156,7 +166,7 @@ void NET::auto_print_recv(device_struct* this_device) {
 	//Set data mem
 	char data[4096];
 	int data_size = 0;
-	CString str;
+	std::string str;
 
 	//Get the recv data and print it
 	while (data_size = recv(
@@ -166,15 +176,17 @@ void NET::auto_print_recv(device_struct* this_device) {
 		0
 	)) {
 		if (data_size == SOCKET_ERROR) {
-			str.Format("Socket error , error code is > %d", WSAGetLastError());
+#ifdef _WIN32
+			str = "Socket error , error code is > " + std::to_string(WSAGetLastError());
 			Show_log(_ERROR, str);
+#else
+			Show_log(_ERROR, "Socket error");
+#endif
 			goto dis;
 		}
 		data[data_size] = '\0';
 		Show_log(_RECV, data);
 		this_device->data.data_CS.push_back(data);
-		str.Format("data_CS size > %d", this_device->data.data_CS.size());
-		Show_log(_DEBU, str);
 	}
 dis:
 	//shut it down
@@ -182,7 +194,7 @@ dis:
 }
 
 unsigned long NET::connect(const char* addr, UINT port) {
-	CString str;
+	std::string str;
 	
 	//setup a new connection
 	sockaddr_in connect_sockaddr;
@@ -214,15 +226,20 @@ unsigned long NET::connect(const char* addr, UINT port) {
 	);
 
 	if (err == SOCKET_ERROR) {
-		str.Format("socket error when connecting a device , WSA error code is %d", WSAGetLastError());
+#ifdef _WIN32
+		str = "socket error when connecting a device , WSA error code is " +
+			std::to_string(WSAGetLastError());
 		Show_log(_ERROR, str);
+#else
+		Show_log(_ERROR, "socket error when connecting a device");
+#endif
 		return 0;
 	}
 	
-	str.Format("New device connect [ ID > %ul ] ", device->ID);
 
 	device_list.push_back(device);
 
+	str = "New device connect [ ID > " + std::to_string(device->ID) + " ]";
 	Show_log(_MSG, str);
 
 	//add it in to auto recv list
@@ -240,7 +257,7 @@ unsigned long NET::connect(const char* addr, UINT port) {
 }
 
 void NET::disconnect(unsigned long ID) {
-	CString str;
+	std::string str;
 	int device_no;
 	Show_log(_DEBU, "disconnecting a device");
 	this->mtx.lock();
@@ -251,7 +268,7 @@ void NET::disconnect(unsigned long ID) {
 			SD_BOTH
 		);
 
-		str.Format("a device disconnect [ device ID > %ul ]", device->ID);
+		str = "a device disconnect [ device ID > " + std::to_string(device->ID) + " ]";
 		Show_log(_MSG, str);
 
 		int auto_recv_list_no = find_device(device->ID, auto_receive_list);

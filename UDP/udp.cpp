@@ -17,8 +17,8 @@ void UDP::up(UINT port) {
 		sizeof(listen_addr)
 	);
 
-	CString str;
-	str.Format("UDP port > %d", port);
+	std::string str;
+	str = "UDP port > " + std::to_string(port);
 	Show_log(_MSG, str);
 
 	std::thread recv_thread(&UDP::recv_service,this);
@@ -45,9 +45,12 @@ unsigned long UDP::register_new_device(const char* addr, UINT port) {
 	
 	device_list.push_back(device);
 
-	CString str;
-	str.Format("add a new device [ ID > %ul ]", device->ID);
+	std::string str;
+	str = "add a new device [ ID > " + std::to_string(device->ID) + "]";
 	Show_log(_MSG, str);
+
+	std::thread auto_cleanup_thread(&UDP::package_auto_cleanup, this, device->ID);
+	auto_cleanup_thread.detach();
 	
 	return device->ID;
 }
@@ -71,7 +74,7 @@ UDP& UDP::delete_device(unsigned long ID) {
 	return *this;
 }
 
-UDP& UDP::send(CString msg, unsigned long ID) {
+UDP& UDP::send(std::string msg, unsigned long ID) {
 	device_struct* device = nullptr;
 	for (auto temp : device_list)
 		if (temp->ID == ID) {
@@ -81,8 +84,8 @@ UDP& UDP::send(CString msg, unsigned long ID) {
 	
 	int err = sendto(
 		device->sock,
-		msg,
-		sizeof(msg),
+		msg.c_str(),
+		strlen(msg.c_str()),
 		0,
 		(sockaddr*)&device->sock_addr,
 		sizeof(device->sock_addr)
@@ -91,7 +94,7 @@ UDP& UDP::send(CString msg, unsigned long ID) {
 }
 
 void UDP::recv_service() {
-	CString str;
+	std::string str;
 	
 	Show_log(_DEBU, "recv_service_udp is running");
 
@@ -109,14 +112,19 @@ void UDP::recv_service() {
 		);
 		
 		if (err == SOCKET_ERROR) {
-			str.Format("WSA error , error code is %d ", WSAGetLastError());
+#ifdef _WIN32
+			str = "recv error , error code is " + std::to_string(WSAGetLastError());
 			Show_log(_ERROR, str);
+#else
+			Show_log(_ERROR, "Socket error (UDP > auto recv)");
+#endif
 			return;
 		}
 
 		buffer[err] = '\0';
 
-		str.Format("recv msg > %s", buffer);
+		str = "recv msg > ";
+		str += buffer;
 		Show_log(_MSG, str);
 
 		if (!is_device_in_device_list(device->sock_addr)) {
@@ -124,16 +132,19 @@ void UDP::recv_service() {
 				inet_ntoa(device->sock_addr.sin_addr),
 				ntohs(device->sock_addr.sin_port)
 			);
-			str.Format("add a new device | ip > %ul | port > %d",
-				device->sock_addr.sin_addr.S_un.S_addr, 
+			str = "add a new device | ip > " + std::to_string(
+				device->sock_addr.sin_addr.S_un.S_addr
+			) + " | port > " + std::to_string(
 				device->sock_addr.sin_port
 			);
 			Show_log(_MSG, str);
 		}
 		mtx.lock();
-		device_list[
-			get_device_no_from_addr(device->sock_addr)
-		]->data.data_CS.push_back(buffer);
+		device = device_list[get_device_no_from_addr(device->sock_addr)];
+		
+		device->data.data_CS.push_back(buffer);
+		device->status.last_recv_time = time(nullptr);
+
 		mtx.unlock();
 	}
 }
@@ -190,4 +201,27 @@ bool UDP::is_device_in_device_list(sockaddr_in addr) {
 		}
 	}
 	return false;
+}
+
+void UDP::package_auto_cleanup(ul ID) {
+	this->mtx.lock();
+	device_struct* device = device_list[get_device_no_from_id(ID)];
+	this->mtx.unlock();
+
+	while (true) {
+		Sleep(3000);
+		if (device->status.last_recv_time < time(nullptr) - 5)
+			break;
+	}
+	package_cleanup(ID);
+	delete_device(ID);
+}
+
+void UDP::package_cleanup(ul ID) {
+	this->mtx.lock();
+	device_struct* device = device_list[get_device_no_from_id(ID)];
+	this->mtx.unlock();
+
+	device->data.data_bin.clear();
+	device->data.data_CS.clear();
 }

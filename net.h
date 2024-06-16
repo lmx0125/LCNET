@@ -2,7 +2,15 @@
 #ifndef _NET_
 #define _NET_
 
+#ifdef _WIN32
 #include <WinSock2.h> 
+#include <atlstr.h>
+#else
+#include <sys/socket.h>  // Linux cpp headers
+#include <netinet/in.h>  // Linux cpp headers
+#include <arpa/inet.h>   // Linux cpp headers
+#endif
+
 #include <iostream>
 #include <stdlib.h>
 #include <time.h>
@@ -13,19 +21,32 @@
 #include <time.h>
 #include <future>
 #include <mutex>
-#include <atlstr.h>
+#include <cstring>
 #include "log.h"
 #include "UDP/udp.h"
 
 #ifndef _NET_TYPE_
 #define _NET_TYPE_
 typedef unsigned long ul;
+
+#ifndef _WIN32
+typedef int SOCKET;
+typedef unsigned int UINT;
 #endif
+
+#endif
+
+#ifndef _NET_DEVICE_STATUS_
+#define _NET_DEVICE_STATUS_
+struct device_status_struct {
+	bool to_cleanup;
+};
+#endif // _NET_DEVICE_STATUS_
 
 #ifndef _DEVICE_RECV_DATA_STRUCT_
 #define _DEVICE_RECV_DATA_STRUCT_
 struct device_recv_data_struct {
-	std::vector<CString> data_CS;
+	std::vector<std::string> data_CS;
 	std::vector<std::vector<unsigned char>> data_bin;
 };
 #endif
@@ -37,6 +58,7 @@ struct device_struct {
 	sockaddr_in sock_addr;
 	unsigned long ID;
 	device_recv_data_struct data;
+	device_status_struct status;
 };
 #endif
 
@@ -46,7 +68,7 @@ typedef device_struct recv_device;
 
 struct msg {
 	UINT type;
-	CString data_cs;
+	std::string data_s;
 	char data[4096];
 };
  
@@ -57,7 +79,7 @@ struct recv_async_struct {
 
 class NET : LOG {
 public:
-	NET();
+	NET(int port = 0);
 	static void Cleanup(int signum);
 	void service();
 	NET& send(const char* message, unsigned long ID);
@@ -76,7 +98,9 @@ public:
 
 	UDP udp;
 private:
+#ifdef _WIN32
 	WSADATA wsaData;
+#endif
 	bool is_service_on = true;
 	std::mutex mtx;
 };

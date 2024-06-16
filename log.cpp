@@ -1,7 +1,7 @@
 #include "log.h"
 
-void LOG::Show_log(CString log_type, CString log_msg) {
-	CString str;
-	str.Format("[%s] [%s]\n", log_type, log_msg);
+void LOG::Show_log(std::string log_type, std::string log_msg) {
+	std::string str;
+	str = "[" + log_type + "] [" + log_msg + "]\n";
 	std::cout << str << std::flush;
 }
