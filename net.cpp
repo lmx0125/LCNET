@@ -185,7 +185,7 @@ void NET::auto_print_recv(device_struct* this_device) {
 			goto dis;
 		}
 		data[data_size] = '\0';
-		Show_log(_RECV, data);
+		//Show_log(_RECV, data);
 		this_device->data.data_CS.push_back(data);
 	}
 dis:

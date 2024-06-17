@@ -61,6 +61,7 @@ UDP& UDP::delete_device(unsigned long ID) {
 	int device_no = 0;
 	for ( auto device : device_list) {
 		if (device->ID == ID) {
+			Show_log(_DEBU, "delete a device");
 			delete device;
 			device_list.erase(
 				device_list.begin() + device_no
@@ -123,9 +124,9 @@ void UDP::recv_service() {
 
 		buffer[err] = '\0';
 
-		str = "recv msg > ";
-		str += buffer;
-		Show_log(_MSG, str);
+		//str = "recv msg > ";
+		//str += buffer;
+		//Show_log(_MSG, str);
 
 		if (!is_device_in_device_list(device->sock_addr)) {
 			register_new_device(
@@ -138,6 +139,11 @@ void UDP::recv_service() {
 				device->sock_addr.sin_port
 			);
 			Show_log(_MSG, str);
+		}
+		else {
+			int device_no = get_device_no_from_addr(device->sock_addr);
+			delete device;
+			device = device_list[device_no];
 		}
 		mtx.lock();
 		device = device_list[get_device_no_from_addr(device->sock_addr)];
