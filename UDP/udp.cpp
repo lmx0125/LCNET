@@ -228,6 +228,6 @@ void UDP::package_cleanup(ul ID) {
 	device_struct* device = device_list[get_device_no_from_id(ID)];
 	this->mtx.unlock();
 
-	device->data.data_bin.clear();
-	device->data.data_CS.clear();
+	device->data.data_bin.erase(device->data.data_bin.begin(), device->data.data_bin.end());
+	device->data.data_CS.erase(device->data.data_CS.begin(), device->data.data_CS.end());
 }
