@@ -57,8 +57,27 @@ struct device_struct {
 	SOCKET sock;
 	sockaddr_in sock_addr;
 	unsigned long ID;
-	device_recv_data_struct data; 
+	device_recv_data_struct data;
 	device_status_struct status;
+	device_struct() {
+		//LOG log;
+		//log.Show_log(_DEBU, "created a device_struct");
+		//printf("[CREATE] address > %p\n", this);
+	}
+
+	~device_struct() {
+		//LOG log;
+		this->data.data_bin.erase(
+			this->data.data_bin.begin(),
+			this->data.data_bin.end()
+		);
+		this->data.data_CS.erase(
+			this->data.data_CS.begin(),
+			this->data.data_CS.end()
+		);
+		//log.Show_log(_DEBU, "device_struct release");
+		//printf("[DELETE] address > %p\n", this);
+	}
 };
 #endif
 

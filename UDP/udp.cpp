@@ -77,11 +77,10 @@ UDP& UDP::delete_device(unsigned long ID) {
 
 UDP& UDP::send(std::string msg, unsigned long ID) {
 	device_struct* device = nullptr;
-	for (auto temp : device_list)
-		if (temp->ID == ID) {
-			device = temp;
-			break;
-		}
+
+	this->mtx.lock();
+	device = device_list[get_device_no_from_id(ID)];
+	this->mtx.unlock();
 	
 	int err = sendto(
 		device->sock,
@@ -91,6 +90,8 @@ UDP& UDP::send(std::string msg, unsigned long ID) {
 		(sockaddr*)&device->sock_addr,
 		sizeof(device->sock_addr)
 	);
+
+	device->status.last_recv_time = time(nullptr);
 	return *this;
 }
 
@@ -100,9 +101,10 @@ void UDP::recv_service() {
 	Show_log(_DEBU, "recv_service_udp is running");
 
 	char* buffer = new char[4097];
-	int sockaddr_size = sizeof(sockaddr), err;
+	int sockaddr_size = sizeof(sockaddr), err, device_no;
+	device_struct* device = new device_struct;
 	while (recv_service_status) {
-		device_struct* device = new device_struct;
+		//printf("[DEVICE ADDR] device > %p | *device > %p\n", device, *device);
 		err = recvfrom(
 			sock,
 			buffer,
@@ -133,6 +135,8 @@ void UDP::recv_service() {
 				inet_ntoa(device->sock_addr.sin_addr),
 				ntohs(device->sock_addr.sin_port)
 			);
+
+			//show a log
 			str = "add a new device | ip > " + std::to_string(
 				device->sock_addr.sin_addr.S_un.S_addr
 			) + " | port > " + std::to_string(
@@ -141,17 +145,12 @@ void UDP::recv_service() {
 			Show_log(_MSG, str);
 		}
 		else {
-			int device_no = get_device_no_from_addr(device->sock_addr);
-			delete device;
-			device = device_list[device_no];
+			mtx.lock();
+			device = device_list[get_device_no_from_addr(device->sock_addr)];
+			mtx.unlock();
 		}
-		mtx.lock();
-		device = device_list[get_device_no_from_addr(device->sock_addr)];
-		
 		device->data.data_CS.push_back(buffer);
 		device->status.last_recv_time = time(nullptr);
-
-		mtx.unlock();
 	}
 }
 

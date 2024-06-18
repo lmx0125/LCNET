@@ -274,8 +274,8 @@ void NET::disconnect(unsigned long ID) {
 		int auto_recv_list_no = find_device(device->ID, auto_receive_list);
 		recv_async_struct* del_async = auto_receive_list[auto_recv_list_no];
 
-		device->data.data_bin.clear();
-		device->data.data_CS.clear();
+		device->data.data_bin.erase(device->data.data_bin.begin(),device->data.data_bin.end());
+		device->data.data_CS.erase(device->data.data_CS.begin(), device->data.data_CS.end());
 
 		delete del_async->device;
 		del_async->device = nullptr;
