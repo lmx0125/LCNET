@@ -23,6 +23,9 @@ void UDP::up(UINT port) {
 
 	std::thread recv_thread(&UDP::recv_service,this);
 	recv_thread.detach();
+
+	//else init
+	callback_func = default_recv_callback_func;
 }
 
 unsigned long UDP::register_new_device(const char* addr, UINT port) {
@@ -75,7 +78,7 @@ UDP& UDP::delete_device(unsigned long ID) {
 	return *this;
 }
 
-UDP& UDP::send(std::string msg, unsigned long ID) {
+UDP& UDP::send(char* msg, unsigned long ID) {
 	device_struct* device = nullptr;
 
 	this->mtx.lock();
@@ -84,8 +87,8 @@ UDP& UDP::send(std::string msg, unsigned long ID) {
 	
 	int err = sendto(
 		device->sock,
-		msg.c_str(),
-		strlen(msg.c_str()),
+		msg,
+		strlen(msg),
 		0,
 		(sockaddr*)&device->sock_addr,
 		sizeof(device->sock_addr)
@@ -151,6 +154,9 @@ void UDP::recv_service() {
 		}
 		device->data.data_CS.push_back(buffer);
 		device->status.last_recv_time = time(nullptr);
+	
+		//invoke the callback func
+		this->callback_func(buffer, *device, 0);
 	}
 }
 
@@ -229,4 +235,13 @@ void UDP::package_cleanup(ul ID) {
 
 	device->data.data_bin.erase(device->data.data_bin.begin(), device->data.data_bin.end());
 	device->data.data_CS.erase(device->data.data_CS.begin(), device->data.data_CS.end());
+}
+
+void UDP::set_udp_package_recv_callback(package_recv_callback_func callback_func) {
+	this->callback_func = callback_func;
+}
+
+void UDP::default_recv_callback_func(char* data, device_struct, int status) {
+	printf("[DEBU] [DEFAULT CALLBACK]\n");
+	return;
 }

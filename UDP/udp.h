@@ -81,19 +81,26 @@ struct device_struct {
 };
 #endif
 
+#ifndef _PACKAGE_RECV_CALLBACK_FUNC_
+#define _PACKAGE_RECV_CALLBACK_FUNC_
+typedef void (*package_recv_callback_func)(char* data, device_struct, int status);
+#endif
+
 class UDP : LOG {
 public:
 	UDP() = default;
 	void up(UINT port);
 	unsigned long register_new_device(const char* addr, UINT port);
 	UDP& delete_device(unsigned long ID);
-	UDP& send(std::string msg, unsigned long ID);
+	UDP& send(char* msg, unsigned long ID);
 	void recv_service();
 	int get_device_no_from_id(unsigned long ID);
 	int get_device_no_from_addr(sockaddr_in addr);
 	//int get_data_list_no_from_id(unsigned long ID);
 	//int get_data_list_no_from_addr(sockaddr_in addr);
 	bool is_device_in_device_list(sockaddr_in addr);
+	void set_udp_package_recv_callback(package_recv_callback_func callback_func);
+	static void default_recv_callback_func(char* data, device_struct, int status);
 	
 	void package_auto_cleanup(ul ID);
 	void package_cleanup(ul ID);
@@ -103,6 +110,7 @@ public:
 	std::mutex mtx;
 	std::vector<device_struct*> device_list;
 	bool recv_service_status = true;
+	package_recv_callback_func callback_func;
 };
 
 #endif
