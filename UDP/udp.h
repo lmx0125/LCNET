@@ -39,6 +39,7 @@ typedef unsigned int UINT;
 #define _NET_DEVICE_STATUS_
 struct device_status_struct {
 	time_t last_recv_time;
+	bool is_enabled_auto_remove = true;
 };
 #endif // _NET_DEVICE_STATUS_
 
@@ -83,7 +84,7 @@ struct device_struct {
 
 #ifndef _PACKAGE_RECV_CALLBACK_FUNC_
 #define _PACKAGE_RECV_CALLBACK_FUNC_
-typedef void (*package_recv_callback_func)(char* data, device_struct, int status);
+typedef void (*package_recv_callback_func)(char* data, device_struct*, int status);
 #endif
 
 class UDP : LOG {
@@ -93,6 +94,7 @@ public:
 	unsigned long register_new_device(const char* addr, UINT port);
 	UDP& delete_device(unsigned long ID);
 	UDP& send(char* msg, unsigned long ID);
+	//UDP& send_to(char* msg, char* addr ,int port);
 	void recv_service();
 	int get_device_no_from_id(unsigned long ID);
 	int get_device_no_from_addr(sockaddr_in addr);
@@ -100,7 +102,8 @@ public:
 	//int get_data_list_no_from_addr(sockaddr_in addr);
 	bool is_device_in_device_list(sockaddr_in addr);
 	void set_udp_package_recv_callback(package_recv_callback_func callback_func);
-	static void default_recv_callback_func(char* data, device_struct, int status);
+	static void default_recv_callback_func(char* data, device_struct*, int status);
+	void set_auto_disconnect_time(int seconds);
 	
 	void package_auto_cleanup(ul ID);
 	void package_cleanup(ul ID);
@@ -111,6 +114,7 @@ public:
 	std::vector<device_struct*> device_list;
 	bool recv_service_status = true;
 	package_recv_callback_func callback_func;
+	int auto_disconnect_time;
 };
 
 #endif

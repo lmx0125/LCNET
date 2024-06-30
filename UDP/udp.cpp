@@ -29,6 +29,16 @@ void UDP::up(UINT port) {
 }
 
 unsigned long UDP::register_new_device(const char* addr, UINT port) {
+	//check is device in this list
+	ul target_device_inet_addr = inet_addr(addr);
+	ul target_device_port = htons(port);
+	for (auto dev : device_list) {
+		if (dev->sock_addr.sin_addr.S_un.S_addr == target_device_inet_addr &&
+			dev->sock_addr.sin_port == target_device_port) {
+			Show_log(_MSG, "this device has been registered");
+		}
+	}
+	
 	//create a new device
 	device_struct* device = new device_struct;
 	device->ID =
@@ -42,9 +52,9 @@ unsigned long UDP::register_new_device(const char* addr, UINT port) {
 		IPPROTO_UDP
 	);
 
-	device->sock_addr.sin_port = htons(port);
+	device->sock_addr.sin_port = target_device_port;
 	device->sock_addr.sin_family = AF_INET;
-	device->sock_addr.sin_addr.S_un.S_addr = inet_addr(addr);
+	device->sock_addr.sin_addr.S_un.S_addr = target_device_inet_addr;
 	
 	device_list.push_back(device);
 
@@ -156,7 +166,7 @@ void UDP::recv_service() {
 		device->status.last_recv_time = time(nullptr);
 	
 		//invoke the callback func
-		this->callback_func(buffer, *device, 0);
+		this->callback_func(buffer, device, 0);
 	}
 }
 
@@ -219,9 +229,12 @@ void UDP::package_auto_cleanup(ul ID) {
 	device_struct* device = device_list[get_device_no_from_id(ID)];
 	this->mtx.unlock();
 
+	if (!device->status.is_enabled_auto_remove)
+		return;
+
 	while (true) {
 		Sleep(3000);
-		if (device->status.last_recv_time < time(nullptr) - 5)
+		if (device->status.last_recv_time < time(nullptr) - this->auto_disconnect_time)
 			break;
 	}
 	package_cleanup(ID);
@@ -241,7 +254,15 @@ void UDP::set_udp_package_recv_callback(package_recv_callback_func callback_func
 	this->callback_func = callback_func;
 }
 
-void UDP::default_recv_callback_func(char* data, device_struct, int status) {
+void UDP::default_recv_callback_func(char* data, device_struct* device, int status) {
 	printf("[DEBU] [DEFAULT CALLBACK]\n");
 	return;
+}
+
+//UDP& UDP::send_to(char* msg, char* addr, int port) {
+//	
+//}
+
+void UDP::set_auto_disconnect_time(int seconds) {
+	this->auto_disconnect_time = seconds;
 }
