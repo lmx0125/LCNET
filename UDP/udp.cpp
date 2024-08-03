@@ -26,9 +26,21 @@ void UDP::up(UINT port) {
 
 	//else init
 	callback_func = default_recv_callback_func;
+	set_auto_disconnect_time(5);
 }
 
 unsigned long UDP::register_new_device(const char* addr, UINT port) {
+	//check is device in this list
+	unsigned long target_device_inet_addr = inet_addr(addr);
+	ul target_device_port = htons(port);
+	for (auto dev : device_list) {
+		if (dev->sock_addr.sin_addr.S_un.S_addr == target_device_inet_addr &&
+			dev->sock_addr.sin_port == target_device_port) {
+			Show_log(_MSG, "this device has been registered");
+			return 0;
+		}
+	}
+	
 	//create a new device
 	device_struct* device = new device_struct;
 	device->ID =
@@ -42,9 +54,9 @@ unsigned long UDP::register_new_device(const char* addr, UINT port) {
 		IPPROTO_UDP
 	);
 
-	device->sock_addr.sin_port = htons(port);
+	device->sock_addr.sin_port = (USHORT)target_device_port;
 	device->sock_addr.sin_family = AF_INET;
-	device->sock_addr.sin_addr.S_un.S_addr = inet_addr(addr);
+	device->sock_addr.sin_addr.S_un.S_addr = target_device_inet_addr;
 	
 	device_list.push_back(device);
 
@@ -88,7 +100,7 @@ UDP& UDP::send(char* msg, unsigned long ID) {
 	int err = sendto(
 		device->sock,
 		msg,
-		strlen(msg),
+		(int)strlen(msg),
 		0,
 		(sockaddr*)&device->sock_addr,
 		sizeof(device->sock_addr)
@@ -104,7 +116,7 @@ void UDP::recv_service() {
 	Show_log(_DEBU, "recv_service_udp is running");
 
 	char* buffer = new char[4097];
-	int sockaddr_size = sizeof(sockaddr), err, device_no;
+	int sockaddr_size = sizeof(sockaddr), err, device_no = 0;
 	device_struct* device = new device_struct;
 	while (recv_service_status) {
 		//printf("[DEVICE ADDR] device > %p | *device > %p\n", device, *device);
@@ -132,7 +144,6 @@ void UDP::recv_service() {
 		//str = "recv msg > ";
 		//str += buffer;
 		//Show_log(_MSG, str);
-
 		if (!is_device_in_device_list(device->sock_addr)) {
 			register_new_device(
 				inet_ntoa(device->sock_addr.sin_addr),
@@ -140,23 +151,21 @@ void UDP::recv_service() {
 			);
 
 			//show a log
-			str = "add a new device | ip > " + std::to_string(
-				device->sock_addr.sin_addr.S_un.S_addr
-			) + " | port > " + std::to_string(
-				device->sock_addr.sin_port
-			);
+			std::string IP(inet_ntoa(device->sock_addr.sin_addr));
+			str = "add a new device | ip > " + IP + " | port > " + std::to_string(ntohs(device->sock_addr.sin_port));
 			Show_log(_MSG, str);
 		}
 		else {
 			mtx.lock();
 			device = device_list[get_device_no_from_addr(device->sock_addr)];
+			device->status.last_recv_time = time(nullptr);
 			mtx.unlock();
 		}
 		device->data.data_CS.push_back(buffer);
 		device->status.last_recv_time = time(nullptr);
 	
 		//invoke the callback func
-		this->callback_func(buffer, *device, 0);
+		this->callback_func(buffer, device, 0, this ,pass_parameter);
 	}
 }
 
@@ -219,9 +228,12 @@ void UDP::package_auto_cleanup(ul ID) {
 	device_struct* device = device_list[get_device_no_from_id(ID)];
 	this->mtx.unlock();
 
+	if (!device->status.is_enabled_auto_remove)
+		return;
+
 	while (true) {
 		Sleep(3000);
-		if (device->status.last_recv_time < time(nullptr) - 5)
+		if (device->status.last_recv_time < time(nullptr) - this->auto_disconnect_time)
 			break;
 	}
 	package_cleanup(ID);
@@ -241,7 +253,27 @@ void UDP::set_udp_package_recv_callback(package_recv_callback_func callback_func
 	this->callback_func = callback_func;
 }
 
-void UDP::default_recv_callback_func(char* data, device_struct, int status) {
+void UDP::default_recv_callback_func(char* data, device_struct*, int status, UDP* udp, std::vector<void*> pass_va) {
 	printf("[DEBU] [DEFAULT CALLBACK]\n");
+	std::cout << data << std::endl;
 	return;
+}
+
+//UDP& UDP::send_to(char* msg, char* addr, int port) {
+//	
+//}
+
+void UDP::set_auto_disconnect_time(int seconds) {
+	this->auto_disconnect_time = seconds;
+}
+
+template<typename T, typename... T2>
+void UDP::set_callback_func_pass_parameter(T argv, T2... args) {
+	pass_parameter.push_back(argv);
+	set_callback_func_pass_parameter(args);
+}
+
+template<typename T>
+void UDP::set_callback_func_pass_parameter(T argv) {
+	pass_parameter.push_back(argv);
 }

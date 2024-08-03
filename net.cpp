@@ -59,7 +59,7 @@ NET::NET(int port) {
 	Show_log(_MSG, "Listening by using backlog 20");
 
 	//init else
-	srand(time(nullptr));
+	srand((UINT16)time(nullptr));
 }
 
 void NET::Cleanup(int signum) {
@@ -144,7 +144,7 @@ NET& NET::send(const char* message, unsigned long ID) {
 	err = ::send(
 		this_device->sock,
 		message,
-		strlen(message),
+		(int)strlen(message),
 		0
 	);
 	 

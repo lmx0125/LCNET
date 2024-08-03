@@ -24,6 +24,9 @@
 #include <string>
 #include "../log.h"
 
+//define something here
+class UDP;
+
 #ifndef _NET_TYPE_
 #define _NET_TYPE_
 typedef unsigned long ul;
@@ -39,6 +42,7 @@ typedef unsigned int UINT;
 #define _NET_DEVICE_STATUS_
 struct device_status_struct {
 	time_t last_recv_time;
+	bool is_enabled_auto_remove = true;
 };
 #endif // _NET_DEVICE_STATUS_
 
@@ -60,13 +64,10 @@ struct device_struct {
 	device_recv_data_struct data;
 	device_status_struct status;
 	device_struct() {
-		//LOG log;
-		//log.Show_log(_DEBU, "created a device_struct");
-		//printf("[CREATE] address > %p\n", this);
+
 	}
 
 	~device_struct() {
-		//LOG log;
 		this->data.data_bin.erase(
 			this->data.data_bin.begin(),
 			this->data.data_bin.end()
@@ -83,7 +84,7 @@ struct device_struct {
 
 #ifndef _PACKAGE_RECV_CALLBACK_FUNC_
 #define _PACKAGE_RECV_CALLBACK_FUNC_
-typedef void (*package_recv_callback_func)(char* data, device_struct, int status);
+typedef void (*package_recv_callback_func)(char* data, device_struct*, int status, UDP* udp, std::vector<void*>);
 #endif
 
 class UDP : LOG {
@@ -93,6 +94,7 @@ public:
 	unsigned long register_new_device(const char* addr, UINT port);
 	UDP& delete_device(unsigned long ID);
 	UDP& send(char* msg, unsigned long ID);
+	//UDP& send_to(char* msg, char* addr ,int port);
 	void recv_service();
 	int get_device_no_from_id(unsigned long ID);
 	int get_device_no_from_addr(sockaddr_in addr);
@@ -100,10 +102,18 @@ public:
 	//int get_data_list_no_from_addr(sockaddr_in addr);
 	bool is_device_in_device_list(sockaddr_in addr);
 	void set_udp_package_recv_callback(package_recv_callback_func callback_func);
-	static void default_recv_callback_func(char* data, device_struct, int status);
+	static void default_recv_callback_func(char* data, device_struct*, int status,UDP* udp = nullptr, std::vector<void*> pass_va = {nullptr});
+	void set_auto_disconnect_time(int seconds);
 	
 	void package_auto_cleanup(ul ID);
 	void package_cleanup(ul ID);
+
+	template<typename T, typename... T2>
+	void set_callback_func_pass_parameter(T argv, T2... args);
+	template<typename T>
+	void set_callback_func_pass_parameter(T argv);
+
+	std::vector<void*> pass_parameter;
 	sockaddr_in listen_addr;
 	SOCKET sock;
 	//std::vector<device_recv_data_struct*> device_recv_data;
@@ -111,6 +121,7 @@ public:
 	std::vector<device_struct*> device_list;
 	bool recv_service_status = true;
 	package_recv_callback_func callback_func;
+	int auto_disconnect_time;
 };
 
 #endif

@@ -14,7 +14,7 @@
 
 class LOG {
 public:
-	void Show_log(std::string log_type,std::string log_msg);
+	static void Show_log(std::string log_type,std::string log_msg);
 private:
 };
 
