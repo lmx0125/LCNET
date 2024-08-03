@@ -128,6 +128,8 @@ void UDP::recv_service() {
 			(sockaddr*)&device->sock_addr,
 			&sockaddr_size
 		);
+
+		buffer[err] = '\0';
 		
 		if (err == SOCKET_ERROR) {
 #ifdef _WIN32
@@ -139,7 +141,7 @@ void UDP::recv_service() {
 			return;
 		}
 
-		buffer[err] = '\0';
+		//buffer[err] = '\0';
 
 		//str = "recv msg > ";
 		//str += buffer;

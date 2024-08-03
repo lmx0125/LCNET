@@ -23,6 +23,10 @@ public:
 		size_t strsize = strlen(encode_val);
 		return std::to_string(strsize) + ";" + encode_val + ";";
 	};
+	static std::string encode(char* encode_val) {
+		size_t strsize = strlen(encode_val);
+		return std::to_string(strsize) + ";" + encode_val + ";";
+	};
 
 	template<typename T>
 	static std::string encode(std::vector<T> encode_val) {
