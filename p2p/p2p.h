@@ -15,10 +15,11 @@
 #define _P2P_DATA_STRUCT_
 struct p2p_data_struct {
 	std::vector<device_struct> p2p_network_device_list;
-	char* data;
+	char* data = nullptr;
 	UINT package_type;
 	UINT status;
 	unsigned short flags;
+
 	~p2p_data_struct() {
 		//delete[] data;
 	}
@@ -55,12 +56,12 @@ public:
 	static void p2p_register_device(char* data, device_struct* device, int status, UDP* udp);
 	static void register_p2p_device(ul ID, device_struct* device, UDP* udp, P2P* p2p);
 
+	//p2p func
+	void add_verify_server(const char* addr, int port);
+	void p2p_send_join_package();
+
 	void send_add_p2p_device_request(device_struct device, ul ID = 0);
 	device_struct* get_p2p_device_by_id(ul ID);
-
-	//this func will delete the mem of data 
-	//static p2p_data_struct char_2_p2p_data(char* data);
-	//static std::shared_ptr<char[]> p2p_data_2_char(p2p_data_struct data);
 
 	//p2p connection func
 	static void on_recv_connect_request(char* data, device_struct* device, int status, UDP* udp);
@@ -83,6 +84,9 @@ private:
 	std::vector<ul> p2p_device_list;
 	NET* net{ nullptr };
 	std::thread core_service;
+	char* verify_server;
+	unsigned short verify_server_port;
+	ul verify_server_ID;
 };
 
 #endif

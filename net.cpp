@@ -49,6 +49,11 @@ NET::NET(int port) {
 		sizeof(sock_addr)
 	);
 
+	if (err == SOCKET_ERROR) {
+		Show_log(_ERROR, "bind error");
+		exit(-1);
+	}
+
 	Show_log(_MSG, "Create the socket successfully");
 
 	err = listen(

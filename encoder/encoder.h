@@ -24,6 +24,8 @@ public:
 		return std::to_string(strsize) + ";" + encode_val + ";";
 	};
 	static std::string encode(char* encode_val) {
+		if (encode_val == nullptr || strlen(encode_val) == 0)
+			return "0;;";
 		size_t strsize = strlen(encode_val);
 		return std::to_string(strsize) + ";" + encode_val + ";";
 	};
