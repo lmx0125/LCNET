@@ -265,7 +265,7 @@ sockaddr_in P2P::decode_sockaddr_in(std::string& addr) {
 	*/
 	sockaddr_in ret_addr;
 	ret_addr.sin_family = std::stoi(encoder::decode(addr));
-	ret_addr.sin_port = (USHORT)std::stoul(encoder::decode(addr));
+	ret_addr.sin_port = (unsigned short)std::stoul(encoder::decode(addr));
 	ret_addr.sin_addr.s_addr = std::stoul(encoder::decode(addr));
 	return ret_addr;
 }

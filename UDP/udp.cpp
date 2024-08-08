@@ -234,11 +234,7 @@ bool UDP::is_device_in_device_list(sockaddr_in addr) {
 
 void UDP::package_auto_cleanup(ul ID) {
 	//wait a few moments
-#ifdef _WIN32
-	Sleep(1000);
-#else
-	sleep(1);
-#endif
+	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	mtx.lock();
 	//check is device invalid
 	long long device_no = get_device_no_from_id(ID);
@@ -254,11 +250,7 @@ void UDP::package_auto_cleanup(ul ID) {
 	}
 
 	while (true) {
-#ifdef _WIN32
-		Sleep(3000);
-#else
-		sleep(3);
-#endif
+		std::this_thread::sleep_for(std::chrono::milliseconds(3000));
 		if (device->status.last_recv_time < time(nullptr) - this->auto_disconnect_time)
 			break;
 	}
