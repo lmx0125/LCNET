@@ -36,6 +36,10 @@ typedef unsigned int UINT;
 
 #endif
 
+#ifndef SOCKET_ERROR
+#define SOCKET_ERROR -1
+#endif
+
 #ifndef _NET_DEVICE_STATUS_
 #define _NET_DEVICE_STATUS_
 struct device_status_struct {
@@ -114,7 +118,6 @@ public:
 	UINT PORT, err;
 	SOCKET sock;
 	sockaddr_in sock_addr;
-
 	UDP udp;
 private:
 #ifdef _WIN32

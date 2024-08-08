@@ -23,6 +23,8 @@
 #include <thread>
 #include <string>
 #include "../log.h"
+#include <cstring>
+
 
 //define something here
 class UDP;
@@ -36,6 +38,10 @@ typedef int SOCKET;
 typedef unsigned int UINT;
 #endif
 
+#endif
+
+#ifndef SOCKET_ERROR
+#define SOCKET_ERROR -1
 #endif
 
 #ifndef _NET_DEVICE_STATUS_

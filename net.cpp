@@ -64,20 +64,18 @@ NET::NET(int port) {
 	Show_log(_MSG, "Listening by using backlog 20");
 
 	//init else
-	srand((UINT16)time(nullptr));
+	srand((UINT)time(nullptr));
 }
 
 void NET::Cleanup(int signum) {
 #ifdef _WIN32
 	WSACleanup();
 #endif // _WIN32
-
 	exit(signum);
 }
 
 void NET::service() {
 	//set some common val
-	int size_of_struct;
 	std::string str;
 	recv_async_struct *new_async;
 	device_struct* newDevice;
@@ -87,7 +85,11 @@ void NET::service() {
 	new_async->device = newDevice;
 
 	//Set the size of the sockaddr size
-	size_of_struct = sizeof(newDevice->sock_addr);
+#ifdef _WIN32
+	int size_of_struct = sizeof(newDevice->sock_addr);
+#else
+	socklen_t size_of_struct = sizeof(newDevice->sock_addr);
+#endif
 	
 	while (is_service_on) {
 		//add a new device
@@ -203,7 +205,7 @@ unsigned long NET::connect(const char* addr, UINT port) {
 	
 	//setup a new connection
 	sockaddr_in connect_sockaddr;
-	connect_sockaddr.sin_addr.S_un.S_addr = inet_addr(addr);
+	connect_sockaddr.sin_addr.s_addr = inet_addr(addr);
 	connect_sockaddr.sin_port = htons(port);
 	connect_sockaddr.sin_family = AF_INET;
 
@@ -268,10 +270,17 @@ void NET::disconnect(unsigned long ID) {
 	this->mtx.lock();
 	if (( device_no = find_device(ID, device_list) ) != -1) {
 		device_struct* device = device_list[device_no];
+#ifdef _WIN32
 		shutdown(
 			device->sock,
 			SD_BOTH
 		);
+#else
+		shutdown(
+			device->sock,
+			SHUT_RDWR
+		);
+#endif
 
 		str = "a device disconnect [ device ID > " + std::to_string(device->ID) + " ]";
 		Show_log(_MSG, str);

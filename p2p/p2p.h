@@ -26,6 +26,10 @@ struct p2p_data_struct {
 };
 #endif
 
+#ifndef SOCKET_ERROR
+#define SOCKET_ERROR -1
+#endif
+
 #ifndef _P2P_PACKAGE_TYPE_
 #define _P2P_PACKAGE_TYPE_
 #define _P2P_NETWORK_DEVICE_LIST_PACKAGE_ 1
@@ -49,8 +53,8 @@ public:
 	P2P(NET* net);
 	void p2p_core_service();
 	void register_p2p_network(const char* addr = "127.0.0.1", int port = 0);
-	void join_p2p_network(const char* addr = "127.0.0.1", int port = 0);
-	void quit_p2p_network(ul p2p_network_ID);
+	void join_p2p_network_by_addr(const char* addr = "127.0.0.1", int port = 0);
+	void quit_p2p_network();
 	static void p2p_package_recv_callback(char* data, device_struct* device, int status, UDP* udp, std::vector<void*> pass_va);
 	void p2p_send(p2p_data_struct p2p_data,ul ID);
 	static void p2p_register_device(char* data, device_struct* device, int status, UDP* udp);

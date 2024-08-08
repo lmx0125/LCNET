@@ -7,7 +7,7 @@ void UDP::up(UINT port) {
 		IPPROTO_UDP
 	);
 
-	listen_addr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
+	listen_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	listen_addr.sin_family = AF_INET;
 	listen_addr.sin_port = htons(port);
 
@@ -34,10 +34,10 @@ unsigned long UDP::register_new_device(const char* addr, UINT port) {
 	unsigned long target_device_inet_addr = inet_addr(addr);
 	ul target_device_port = htons(port);
 	for (auto dev : device_list) {
-		if (dev->sock_addr.sin_addr.S_un.S_addr == target_device_inet_addr &&
+		if (dev->sock_addr.sin_addr.s_addr == target_device_inet_addr &&
 			dev->sock_addr.sin_port == target_device_port) {
 			Show_log(_MSG, "this device has been registered");
-			return 0;
+			return dev->ID;
 		}
 	}
 	
@@ -54,9 +54,9 @@ unsigned long UDP::register_new_device(const char* addr, UINT port) {
 		IPPROTO_UDP
 	);
 
-	device->sock_addr.sin_port = (USHORT)target_device_port;
+	device->sock_addr.sin_port = (unsigned short)target_device_port;
 	device->sock_addr.sin_family = AF_INET;
-	device->sock_addr.sin_addr.S_un.S_addr = target_device_inet_addr;
+	device->sock_addr.sin_addr.s_addr = target_device_inet_addr;
 	
 	device_list.push_back(device);
 
@@ -94,7 +94,10 @@ UDP& UDP::send(char* msg, unsigned long ID) {
 	device_struct* device = nullptr;
 
 	this->mtx.lock();
-	device = device_list[get_device_no_from_id(ID)];
+	long long device_no = get_device_no_from_id(ID);
+	if (device_no == -1)
+		return *this;
+	device = device_list[device_no];
 	this->mtx.unlock();
 	
 	int err = sendto(
@@ -116,7 +119,11 @@ void UDP::recv_service() {
 	Show_log(_DEBU, "recv_service_udp is running");
 
 	char* buffer = new char[4097];
+#ifdef _WIN32
 	int sockaddr_size = sizeof(sockaddr), err, device_no = 0;
+#else
+	socklen_t sockaddr_size = sizeof(sockaddr), err, device_no = 0;
+#endif
 	device_struct* device = new device_struct;
 	while (recv_service_status) {
 		//printf("[DEVICE ADDR] device > %p | *device > %p\n", device, *device);
@@ -185,7 +192,7 @@ int UDP::get_device_no_from_id(unsigned long ID) {
 int UDP::get_device_no_from_addr(sockaddr_in addr) {
 	int device_no = 0;
 	for (auto device : device_list) {
-		if (device->sock_addr.sin_addr.S_un.S_addr == addr.sin_addr.S_un.S_addr &&
+		if (device->sock_addr.sin_addr.s_addr == addr.sin_addr.s_addr &&
 			device->sock_addr.sin_port == addr.sin_port)
 			return device_no;
 		device_no++;
@@ -217,7 +224,7 @@ int UDP::get_device_no_from_addr(sockaddr_in addr) {
 
 bool UDP::is_device_in_device_list(sockaddr_in addr) {
 	for (auto device : device_list) {
-		if (device->sock_addr.sin_addr.S_un.S_addr == addr.sin_addr.S_un.S_addr &&
+		if (device->sock_addr.sin_addr.s_addr == addr.sin_addr.s_addr &&
 			device->sock_addr.sin_port == addr.sin_port) {
 			return true;
 		}
@@ -226,15 +233,32 @@ bool UDP::is_device_in_device_list(sockaddr_in addr) {
 }
 
 void UDP::package_auto_cleanup(ul ID) {
-	this->mtx.lock();
-	device_struct* device = device_list[get_device_no_from_id(ID)];
-	this->mtx.unlock();
-
-	if (!device->status.is_enabled_auto_remove)
+	//wait a few moments
+#ifdef _WIN32
+	Sleep(1000);
+#else
+	sleep(1);
+#endif
+	mtx.lock();
+	//check is device invalid
+	long long device_no = get_device_no_from_id(ID);
+	if (device_no == -1) {
+		this->mtx.unlock();
 		return;
+	}
+	device_struct* device = device_list[device_no];
+	mtx.unlock();
+
+	if (!device->status.is_enabled_auto_remove) {
+		return;
+	}
 
 	while (true) {
+#ifdef _WIN32
 		Sleep(3000);
+#else
+		sleep(3);
+#endif
 		if (device->status.last_recv_time < time(nullptr) - this->auto_disconnect_time)
 			break;
 	}
@@ -272,7 +296,7 @@ void UDP::set_auto_disconnect_time(int seconds) {
 template<typename T, typename... T2>
 void UDP::set_callback_func_pass_parameter(T argv, T2... args) {
 	pass_parameter.push_back(argv);
-	set_callback_func_pass_parameter(args);
+	set_callback_func_pass_parameter(args...);
 }
 
 template<typename T>

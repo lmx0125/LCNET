@@ -17,7 +17,7 @@ void P2P::p2p_core_service() {
 void P2P::register_p2p_network(const char* addr, int port) {
 	if (addr != "127.0.0.1") {
 		if (port != 0) {
-			join_p2p_network(addr, port);
+			join_p2p_network_by_addr(addr, port);
 			Show_log(_MSG, "using other addr");
 		}
 		return;
@@ -29,16 +29,16 @@ void P2P::register_p2p_network(const char* addr, int port) {
 		(rand() % 10000) * 1;
 }
 
-void P2P::join_p2p_network(const char* addr, int port) {
+void P2P::join_p2p_network_by_addr(const char* addr, int port) {
 	Show_log(_MSG, "joining a p2p network");
-	ul ID = this->net->udp.register_new_device(addr, port);
+	ul ID = net->udp.register_new_device(addr, port);
 	p2p_data_struct p2p_package;
 	p2p_package.package_type = _P2P_NETWORK_CONNECTION_PACKAGE_;
 	p2p_package.flags = _P2P_CONNECT_FLAG_;
 	this->p2p_send(p2p_package, ID);
 }
 
-void P2P::quit_p2p_network(ul p2p_network_ID) {
+void P2P::quit_p2p_network() {
 	Show_log(_MSG, "quit a p2p network");
 }
 
