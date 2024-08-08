@@ -1,7 +1,7 @@
-# Usage
+# Description
 
 A lib can make net connection easier!<br>
-(just support on Windows now)
+(support linux now!)
 
 ## Build
 
@@ -17,8 +17,14 @@ A lib can make net connection easier!<br>
     #include "net.h"
     ```
 
+> other modules like p2p needs other head file
+>    ```cpp
+>    #include "p2p/p2p.h"
+>    ```
+
 > If you are using visual studio or etc., you may link ws2_32.lib
 
 2. **Build it**
 
-> use visual studio or etc. to build it
+> use msvc and g++ or etc. to build it<br>
+> (g++ needs to add all cpp files by your self)
