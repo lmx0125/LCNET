@@ -1,5 +1,9 @@
 #include "net.h"
 
+NET::~NET() {
+	WSACleanup();
+}
+
 NET::NET(int port) {
 	//Set exit signal
 	signal(SIGABRT,&NET::Cleanup);

@@ -42,7 +42,7 @@ void P2P::quit_p2p_network() {
 	Show_log(_MSG, "quit a p2p network");
 }
 
-void P2P::p2p_package_recv_callback(char* data, device_struct* device, int status,UDP* udp, std::vector<void*> pass_va) {
+void P2P::p2p_package_recv_callback(char* data, long buffer_size, device_struct* device, int status,UDP* udp, std::vector<void*> pass_va) {
 	std::string string_data(data);
 	p2p_data_struct p2p_data = decode_p2p_package(string_data);
 	printf(p2p_data.data);
@@ -84,7 +84,7 @@ void P2P::p2p_package_recv_callback(char* data, device_struct* device, int statu
 		break;
 	default:
 		Show_log(_ERROR, "this package is not a p2p package [LCNET] ");
-		udp->default_recv_callback_func(data, device, status, udp, pass_va);
+		udp->default_recv_callback_func(data, buffer_size, device, status, udp, pass_va);
 	}
 }
 

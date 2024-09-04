@@ -1,5 +1,22 @@
 #include "udp.h"
 
+UDP::~UDP() {
+	//disconnect (delete) all device
+	while (device_list.size()) {
+		Show_log(_DEBU, "is destory device | ID > " + std::to_string(device_list[0]->ID));
+		delete_device(device_list[0]->ID);
+	}
+
+	//wait for all thread determinated
+	should_recv_service_terminate = true;
+	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+	while (clean_up_threads.size())
+		clean_up_threads[0].join();
+
+	delete buffer;
+}
+
 void UDP::up(UINT port) {
 	sock = socket(
 		AF_INET,
@@ -27,6 +44,21 @@ void UDP::up(UINT port) {
 	//else init
 	callback_func = default_recv_callback_func;
 	set_auto_disconnect_time(5);
+
+#ifdef _WIN32
+	unsigned long on = 1;
+	if (ioctlsocket(sock, FIONBIO, &on) != 0)
+		Show_log(_ERROR, "can not set non-blocking mode");
+#else
+	int flag = fcntl(sock, F_GETFL, 0);  //取标志
+	if (flag < 0) {
+		Perror("fcntl F_GETFL fail");
+		return;
+	}
+	if (fcntl(sock, F_SETFL, flag | O_NONBLOCK) < 0) {  //设置标志
+		Perror("fcntl F_SETFL fail");
+	}
+#endif
 }
 
 unsigned long UDP::register_new_device(const char* addr, UINT port) {
@@ -48,12 +80,6 @@ unsigned long UDP::register_new_device(const char* addr, UINT port) {
 		(rand() % 10000) * 10000 +
 		(rand() % 10000) * 1;
 
-	device->sock = socket(
-		AF_INET,
-		SOCK_DGRAM,
-		IPPROTO_UDP
-	);
-
 	device->sock_addr.sin_port = (unsigned short)target_device_port;
 	device->sock_addr.sin_family = AF_INET;
 	device->sock_addr.sin_addr.s_addr = target_device_inet_addr;
@@ -64,20 +90,20 @@ unsigned long UDP::register_new_device(const char* addr, UINT port) {
 	str = "add a new device [ ID > " + std::to_string(device->ID) + "]";
 	Show_log(_MSG, str);
 
-	std::thread auto_cleanup_thread(&UDP::package_auto_cleanup, this, device->ID);
-	auto_cleanup_thread.detach();
+	clean_up_threads.push_back(std::thread(&UDP::package_auto_cleanup, this, device->ID));
+	device->is_main_thread_terminated = false;
 	
 	return device->ID;
 }
 
 UDP& UDP::delete_device(unsigned long ID) {
-	mtx.lock();
-
 	int device_no = 0;
+	mtx.lock();
 	for ( auto device : device_list) {
 		if (device->ID == ID) {
-			Show_log(_DEBU, "delete a device");
+			Show_log(_DEBU, "delete a device | ID > " + std::to_string(device->ID));
 			delete device;
+			device = nullptr;
 			device_list.erase(
 				device_list.begin() + device_no
 			);
@@ -90,24 +116,37 @@ UDP& UDP::delete_device(unsigned long ID) {
 	return *this;
 }
 
-UDP& UDP::send(char* msg, unsigned long ID) {
+UDP& UDP::send(char* msg, unsigned long ID, long data_size) {
 	device_struct* device = nullptr;
 
 	this->mtx.lock();
 	long long device_no = get_device_no_from_id(ID);
-	if (device_no == -1)
+	if (device_no == -1) {
+		this->mtx.unlock();
 		return *this;
+	}
 	device = device_list[device_no];
 	this->mtx.unlock();
-	
-	int err = sendto(
-		device->sock,
-		msg,
-		(int)strlen(msg),
-		0,
-		(sockaddr*)&device->sock_addr,
-		sizeof(device->sock_addr)
-	);
+
+	if (!data_size) {
+		int err = sendto(
+			sock,
+			msg,
+			(int)strlen(msg),
+			0,
+			(sockaddr*)&device->sock_addr,
+			sizeof(device->sock_addr)
+		);
+	}else {
+		int err = sendto(
+			sock,
+			msg,
+			data_size,
+			0,
+			(sockaddr*)&device->sock_addr,
+			sizeof(device->sock_addr)
+		);
+	}
 
 	device->status.last_recv_time = time(nullptr);
 	return *this;
@@ -118,23 +157,40 @@ void UDP::recv_service() {
 	
 	Show_log(_DEBU, "recv_service_udp is running");
 
-	char* buffer = new char[4097];
 #ifdef _WIN32
 	int sockaddr_size = sizeof(sockaddr), err, device_no = 0;
 #else
 	socklen_t sockaddr_size = sizeof(sockaddr), err, device_no = 0;
 #endif
-	device_struct* device = new device_struct;
+
+	timeval timeout_time;
+	timeout_time.tv_sec = 0;
+	timeout_time.tv_usec = 1000;
+
+	if (setsockopt(sock,SOL_SOCKET,SO_RCVTIMEO,(char*)&timeout_time,sizeof(timeout_time)) != 0) {
+		Show_log(_ERROR, "can not set socket recv mode");
+	}
+
 	while (recv_service_status) {
-		//printf("[DEVICE ADDR] device > %p | *device > %p\n", device, *device);
-		err = recvfrom(
-			sock,
-			buffer,
-			4097,
-			0,
-			(sockaddr*)&device->sock_addr,
-			&sockaddr_size
-		);
+		device->ID = 0;
+		while (true) {
+			err = recvfrom(
+				sock,
+				buffer,
+				4096,
+				0,
+				(sockaddr*)&device->sock_addr,
+				&sockaddr_size
+			);
+
+			if (should_recv_service_terminate) {
+				Show_log(_DEBU, "auto recv thread is terminating");
+				return;
+			}
+			if (err > 0)
+				break;
+		}
+
 
 		buffer[err] = '\0';
 		
@@ -148,11 +204,6 @@ void UDP::recv_service() {
 			return;
 		}
 
-		//buffer[err] = '\0';
-
-		//str = "recv msg > ";
-		//str += buffer;
-		//Show_log(_MSG, str);
 		if (!is_device_in_device_list(device->sock_addr)) {
 			register_new_device(
 				inet_ntoa(device->sock_addr.sin_addr),
@@ -163,18 +214,17 @@ void UDP::recv_service() {
 			std::string IP(inet_ntoa(device->sock_addr.sin_addr));
 			str = "add a new device | ip > " + IP + " | port > " + std::to_string(ntohs(device->sock_addr.sin_port));
 			Show_log(_MSG, str);
-		}
-		else {
+		} else {
 			mtx.lock();
-			device = device_list[get_device_no_from_addr(device->sock_addr)];
-			device->status.last_recv_time = time(nullptr);
+			device.reset(device_list[get_device_no_from_addr(device->sock_addr)]);
 			mtx.unlock();
+			device->status.last_recv_time = time(nullptr);
 		}
 		device->data.data_CS.push_back(buffer);
 		device->status.last_recv_time = time(nullptr);
-	
+
 		//invoke the callback func
-		this->callback_func(buffer, device, 0, this ,pass_parameter);
+		this->callback_func(buffer, err, device.get(), 0, this, pass_parameter);
 	}
 }
 
@@ -185,7 +235,7 @@ int UDP::get_device_no_from_id(unsigned long ID) {
 			return device_no;
 		device_no++;
 	}
-	Show_log(_ERROR, "invalid id");
+	Show_log(_ERROR, "invalid id | ID > " + std::to_string(ID));
 	return -1;
 }
 
@@ -234,7 +284,8 @@ bool UDP::is_device_in_device_list(sockaddr_in addr) {
 
 void UDP::package_auto_cleanup(ul ID) {
 	//wait a few moments
-	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+	Show_log(_DEBU, "clean thread is running | ID > " + std::to_string(ID));
+	std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	mtx.lock();
 	//check is device invalid
 	long long device_no = get_device_no_from_id(ID);
@@ -250,19 +301,22 @@ void UDP::package_auto_cleanup(ul ID) {
 	}
 
 	while (true) {
-		std::this_thread::sleep_for(std::chrono::milliseconds(3000));
-		if (device->status.last_recv_time < time(nullptr) - this->auto_disconnect_time)
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		if (device->is_main_thread_terminated)
+			return; 
+		if (device->status.last_recv_time < time(nullptr) - this->auto_disconnect_time) {
+			std::this_thread::sleep_for(std::chrono::seconds(1));
 			break;
+		}
 	}
-	package_cleanup(ID);
+
+	package_cleanup(device);
 	delete_device(ID);
+
+	Show_log(_DEBU, "end thread | ID > " + std::to_string(device->ID));
 }
 
-void UDP::package_cleanup(ul ID) {
-	this->mtx.lock();
-	device_struct* device = device_list[get_device_no_from_id(ID)];
-	this->mtx.unlock();
-
+void UDP::package_cleanup(device_struct* device) {
 	device->data.data_bin.erase(device->data.data_bin.begin(), device->data.data_bin.end());
 	device->data.data_CS.erase(device->data.data_CS.begin(), device->data.data_CS.end());
 }
@@ -271,7 +325,7 @@ void UDP::set_udp_package_recv_callback(package_recv_callback_func callback_func
 	this->callback_func = callback_func;
 }
 
-void UDP::default_recv_callback_func(char* data, device_struct*, int status, UDP* udp, std::vector<void*> pass_va) {
+void UDP::default_recv_callback_func(char* data, long buffer_size, device_struct*, int status, UDP* udp, std::vector<void*> pass_va) {
 	printf("[DEBU] [DEFAULT CALLBACK]\n");
 	std::cout << data << std::endl;
 	return;
@@ -283,15 +337,4 @@ void UDP::default_recv_callback_func(char* data, device_struct*, int status, UDP
 
 void UDP::set_auto_disconnect_time(int seconds) {
 	this->auto_disconnect_time = seconds;
-}
-
-template<typename T, typename... T2>
-void UDP::set_callback_func_pass_parameter(T argv, T2... args) {
-	pass_parameter.push_back(argv);
-	set_callback_func_pass_parameter(args...);
-}
-
-template<typename T>
-void UDP::set_callback_func_pass_parameter(T argv) {
-	pass_parameter.push_back(argv);
 }

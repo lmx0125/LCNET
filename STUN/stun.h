@@ -34,7 +34,7 @@ enum attribute_type {
 class STUN {
 public:
     STUN(NET* net);
-    ~STUN() { std::cout << "aasdfsdfasf" << std::endl; }
+    ~STUN();
     void build_stun_package_header(uint16_t msg_type, uint16_t att_type);
     void gen_transaction_id();
     void send_stun_bind_request(const char* addr, UINT port);

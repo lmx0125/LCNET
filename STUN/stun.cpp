@@ -4,6 +4,10 @@ STUN::STUN(NET* net) {
 	this->net = net;
 }
 
+STUN::~STUN() {
+	delete[] recv_data;
+}
+
 void STUN::build_stun_package_header(uint16_t msg_type, uint16_t att_type) {
 	memset(header, 0, sizeof(header));
 	header[0] = (msg_type >> 8) & 0xFF;
@@ -48,9 +52,9 @@ void STUN::stun_recv_callback(char* data, long buffer_size, device_struct*, int 
 	memcpy(else_parameter[0], data, buffer_size);
 	//else_parameter[0] = (uint8_t*)data;
 	uint8_t* test_array = (uint8_t*)data;
-	for (long i = 0; i < buffer_size; i++) {
-		std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(test_array[i]) << " ";
-	}
+	//for (long i = 0; i < buffer_size; i++) {
+	//	std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(test_array[i]) << " ";
+	//}
 	std::cout << std::endl;
 	stun->stun_callback_clear();
 }

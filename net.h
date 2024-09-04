@@ -103,6 +103,7 @@ struct recv_async_struct {
 class NET : LOG {
 public:
 	NET(int port = 0);
+	~NET();
 	static void Cleanup(int signum);
 	void service();
 	NET& send(const char* message, unsigned long ID);
@@ -119,7 +120,6 @@ public:
 	SOCKET sock;
 	sockaddr_in sock_addr;
 	UDP udp;
-private:
 #ifdef _WIN32
 	WSADATA wsaData;
 #endif

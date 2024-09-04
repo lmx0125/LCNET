@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef _NET_P2P_
-#define _NET_P2P_
+#ifndef _P2P_
+#define _P2P_
 
 #include <vector>
 #include <thread>
@@ -55,7 +55,7 @@ public:
 	void register_p2p_network(const char* addr = "127.0.0.1", int port = 0);
 	void join_p2p_network_by_addr(const char* addr = "127.0.0.1", int port = 0);
 	void quit_p2p_network();
-	static void p2p_package_recv_callback(char* data, device_struct* device, int status, UDP* udp, std::vector<void*> pass_va);
+	static void p2p_package_recv_callback(char* data, long buffer_size, device_struct* device, int status, UDP* udp, std::vector<void*> pass_va);
 	void p2p_send(p2p_data_struct p2p_data,ul ID);
 	static void p2p_register_device(char* data, device_struct* device, int status, UDP* udp);
 	static void register_p2p_device(ul ID, device_struct* device, UDP* udp, P2P* p2p);
