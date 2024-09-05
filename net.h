@@ -113,6 +113,8 @@ public:
 	int find_device(unsigned long ID, std::vector<device_struct*> list);
 	int find_device(unsigned long ID, std::vector<recv_async_struct*> list);
 
+	char* domain_to_IP(char* domain);
+	char* domain_to_IP(std::string domain);
 
 	std::vector<device_struct *> device_list;
 	std::vector<recv_async_struct *> auto_receive_list;

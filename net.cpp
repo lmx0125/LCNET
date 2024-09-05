@@ -335,3 +335,21 @@ int NET::find_device(unsigned long ID, std::vector<recv_async_struct*> list) {
 	}
 	return -1;
 }
+
+char* NET::domain_to_IP(char* domain) {
+	hostent* host_info;
+	host_info = gethostbyname(domain); 
+	in_addr* address = (in_addr*)host_info->h_addr_list[0];
+	char* ip_address = inet_ntoa(*address);
+	return ip_address;
+}                                        
+
+char* NET::domain_to_IP(std::string domain) {
+	char char_domain[16];
+	sprintf(char_domain, "%s", domain.c_str());
+	hostent* host_info;
+	host_info = gethostbyname(char_domain);
+	in_addr* address = (in_addr*)host_info->h_addr_list[0];
+	char* ip_address = inet_ntoa(*address);
+	return ip_address;
+}
