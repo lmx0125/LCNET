@@ -4,7 +4,7 @@ NET::~NET() {
 	WSACleanup();
 }
 
-NET::NET(int port) {
+NET::NET(int port, int udp_port) {
 	//Set exit signal
 	signal(SIGABRT,&NET::Cleanup);
 	signal(SIGFPE, &NET::Cleanup);
@@ -35,9 +35,6 @@ NET::NET(int port) {
 	else
 		this->PORT = port;
 
-	//setup udp module
-	udp.up(PORT + 1);
-
 	std::string msg; //Show the rand Port
 	msg = "TCP port > " + std::to_string(PORT);
 	Show_log(_MSG, msg);
@@ -62,13 +59,19 @@ NET::NET(int port) {
 
 	err = listen(
 		sock,
-		20
+		20          //backlog
 	);
 
 	Show_log(_MSG, "Listening by using backlog 20");
 
 	//init else
 	srand((UINT)time(nullptr));
+
+	//setup udp module
+	if (udp_port == 0)
+		udp.up(PORT + 1);
+	else
+		udp.up(udp_port);
 }
 
 void NET::Cleanup(int signum) {
@@ -100,10 +103,7 @@ void NET::service() {
 		device_list.push_back(newDevice);
 
 		//set a unique ID
-		newDevice->ID =
-			(rand() % 10000) * 100000000 +
-			(rand() % 10000) * 10000 +
-			(rand() % 10000) * 1;
+		newDevice->ID = IDgenerator.generateID();
 
 		//accept the request
 		newDevice->sock = accept(
@@ -224,10 +224,7 @@ unsigned long NET::connect(const char* addr, UINT port) {
 
 	device->sock_addr = connect_sockaddr;
 
-	device->ID =
-		(rand() % 10000) * 100000000 +
-		(rand() % 10000) * 10000 +
-		(rand() % 10000) * 1;
+	device->ID = IDgenerator.generateID();
 
 	//connect the target device
 	int err = ::connect(
@@ -294,6 +291,8 @@ void NET::disconnect(unsigned long ID) {
 
 		device->data.data_bin.erase(device->data.data_bin.begin(),device->data.data_bin.end());
 		device->data.data_CS.erase(device->data.data_CS.begin(), device->data.data_CS.end());
+
+		IDgenerator.deleteID(del_async->device->ID);
 
 		delete del_async->device;
 		del_async->device = nullptr;

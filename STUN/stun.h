@@ -1,5 +1,5 @@
-#ifndef _STUN_
-#define _STUN_
+#ifndef _STUN_H_
+#define _STUN_H_
 
 #include "../net.h"
 #include "../UDP/udp.h"

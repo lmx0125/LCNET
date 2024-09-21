@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef _P2P_
-#define _P2P_
+#ifndef _P2P_H_
+#define _P2P_H_
 
 #include <vector>
 #include <thread>

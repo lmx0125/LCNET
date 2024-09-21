@@ -68,17 +68,14 @@ unsigned long UDP::register_new_device(const char* addr, UINT port) {
 	for (auto dev : device_list) {
 		if (dev->sock_addr.sin_addr.s_addr == target_device_inet_addr &&
 			dev->sock_addr.sin_port == target_device_port) {
-			Show_log(_MSG, "this device has been registered");
+			//Show_log(_MSG, "this device has been registered");
 			return dev->ID;
 		}
 	}
 	
 	//create a new device
 	device_struct* device = new device_struct;
-	device->ID =
-		(rand() % 10000) * 100000000 +
-		(rand() % 10000) * 10000 +
-		(rand() % 10000) * 1;
+	device->ID = IDgenerator.generateID();
 
 	device->sock_addr.sin_port = (unsigned short)target_device_port;
 	device->sock_addr.sin_family = AF_INET;
@@ -102,6 +99,7 @@ UDP& UDP::delete_device(unsigned long ID) {
 	for ( auto device : device_list) {
 		if (device->ID == ID) {
 			Show_log(_DEBU, "delete a device | ID > " + std::to_string(device->ID));
+			IDgenerator.deleteID(device->ID);
 			delete device;
 			device = nullptr;
 			device_list.erase(
@@ -114,6 +112,11 @@ UDP& UDP::delete_device(unsigned long ID) {
 	}
 	mtx.unlock();
 	return *this;
+}
+
+UDP& UDP::send(std::string msg, unsigned long ID, long data_size) {
+	const char* char_msg = msg.c_str();
+	return send(const_cast<char*>(char_msg), ID, data_size);
 }
 
 UDP& UDP::send(char* msg, unsigned long ID, long data_size) {
@@ -284,7 +287,7 @@ bool UDP::is_device_in_device_list(sockaddr_in addr) {
 
 void UDP::package_auto_cleanup(ul ID) {
 	//wait a few moments
-	Show_log(_DEBU, "clean thread is running | ID > " + std::to_string(ID));
+	//Show_log(_DEBU, "clean thread is running | ID > " + std::to_string(ID));
 	std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	mtx.lock();
 	//check is device invalid
@@ -313,7 +316,7 @@ void UDP::package_auto_cleanup(ul ID) {
 	package_cleanup(device);
 	delete_device(ID);
 
-	Show_log(_DEBU, "end thread | ID > " + std::to_string(device->ID));
+	//Show_log(_DEBU, "end thread | ID > " + std::to_string(device->ID));
 }
 
 void UDP::package_cleanup(device_struct* device) {

@@ -1,5 +1,5 @@
-#ifndef _UDP_
-#define _UDP_
+#ifndef _UDP_H_
+#define _UDP_H_
 
 #ifdef _WIN32
 #include <WinSock2.h> 
@@ -22,8 +22,8 @@
 #include <memory>
 #include <thread>
 #include <string>
-#include "../log.h"
-#include <cstring>
+#include "../log/log.h"
+#include "../IDgen/IDgen.h"
 
 //define something here
 class UDP;
@@ -102,6 +102,7 @@ public:
 	unsigned long register_new_device(const char* addr, UINT port);
 	UDP& delete_device(unsigned long ID);
 	UDP& send(char* msg, unsigned long ID, long data_size = 0);
+	UDP& send(std::string msg, unsigned long ID, long data_size = 0);
 	//UDP& send_to(char* msg, char* addr ,int port);
 	void recv_service();
 	int get_device_no_from_id(unsigned long ID);
@@ -140,6 +141,7 @@ public:
 	std::shared_ptr<device_struct> device = std::make_shared<device_struct>();
 	bool should_recv_service_terminate = false;
 	std::vector<std::thread> clean_up_threads;
+	IDgen IDgenerator;
 };
 
 #endif

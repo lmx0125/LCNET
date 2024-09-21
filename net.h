@@ -1,6 +1,6 @@
 #pragma once
-#ifndef _NET_
-#define _NET_
+#ifndef _NET_H_
+#define _NET_H_
 
 #ifdef _WIN32
 #include <WinSock2.h> 
@@ -22,8 +22,9 @@
 #include <future>
 #include <mutex>
 #include <cstring>
-#include "log.h"
+#include "log/log.h"
 #include "UDP/udp.h"
+#include "IDgen/IDgen.h"
 
 #ifndef _NET_TYPE_
 #define _NET_TYPE_
@@ -102,7 +103,7 @@ struct recv_async_struct {
 
 class NET : LOG {
 public:
-	NET(int port = 0);
+	NET(int port = 0,int udp_port = 0);
 	~NET();
 	static void Cleanup(int signum);
 	void service();
@@ -127,6 +128,7 @@ public:
 #endif
 	bool is_service_on = true;
 	std::mutex mtx;
+	IDgen IDgenerator;
 };
 
 #endif
