@@ -5,6 +5,7 @@
 #ifdef _WIN32
 #include <WinSock2.h> 
 #include <atlstr.h>
+#include <WS2tcpip.h>
 #else
 #include <sys/socket.h>  // Linux cpp headers
 #include <netinet/in.h>  // Linux cpp headers

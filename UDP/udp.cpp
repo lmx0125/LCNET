@@ -84,7 +84,7 @@ unsigned long UDP::register_new_device(const char* addr, UINT port) {
 	device_list.push_back(device);
 
 	std::string str;
-	str = "add a new device [ ID > " + std::to_string(device->ID) + "]";
+	str = "add a new device | ID > " + std::to_string(device->ID);
 	Show_log(_MSG, str);
 
 	clean_up_threads.push_back(std::thread(&UDP::package_auto_cleanup, this, device->ID));

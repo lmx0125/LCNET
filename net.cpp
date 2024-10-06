@@ -1,7 +1,9 @@
 #include "net.h"
 
 NET::~NET() {
+#ifdef _WIN32
 	WSACleanup();
+#endif
 }
 
 NET::NET(int port, int udp_port) {
@@ -336,19 +338,20 @@ int NET::find_device(unsigned long ID, std::vector<recv_async_struct*> list) {
 }
 
 char* NET::domain_to_IP(char* domain) {
-	hostent* host_info;
-	host_info = gethostbyname(domain); 
-	in_addr* address = (in_addr*)host_info->h_addr_list[0];
-	char* ip_address = inet_ntoa(*address);
-	return ip_address;
+	struct addrinfo hints ,*res;
+	memset(&hints, 0, sizeof(addrinfo));
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+	
+	if (getaddrinfo(domain, nullptr, &hints, &res)) {
+		Show_log(_ERROR, "can not resolve this domain > " + std::string(domain));
+		return nullptr;
+	}
+	
+	return inet_ntoa(((struct sockaddr_in*)res->ai_addr)->sin_addr);
 }                                        
 
 char* NET::domain_to_IP(std::string domain) {
-	char char_domain[16];
-	sprintf(char_domain, "%s", domain.c_str());
-	hostent* host_info;
-	host_info = gethostbyname(char_domain);
-	in_addr* address = (in_addr*)host_info->h_addr_list[0];
-	char* ip_address = inet_ntoa(*address);
-	return ip_address;
+	const char* domain_c = domain.c_str();
+	return domain_to_IP(const_cast<char*>(domain_c));
 }
