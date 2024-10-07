@@ -2,11 +2,14 @@
 #define _UDP_H_
 
 #ifdef _WIN32
-#include <WinSock2.h> 
+#include <WinSock2.h>
+#include <WS2tcpip.h>
 #else
 #include <sys/socket.h>  // Linux cpp headers
 #include <netinet/in.h>  // Linux cpp headers
 #include <arpa/inet.h>   // Linux cpp headers
+#include <netdb.h>		 // Linux cpp headers
+#include <fcntl.h>		 // Linux cpp headers
 #endif
 
 #include <iostream>
@@ -22,6 +25,7 @@
 #include <memory>
 #include <thread>
 #include <string>
+#include <cstring>
 #include "../log/log.h"
 #include "../IDgen/IDgen.h"
 

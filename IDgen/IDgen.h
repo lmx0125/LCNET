@@ -4,6 +4,7 @@
 #include <vector>
 #include <time.h>
 #include <mutex>
+#include <algorithm>
 #include "../log/log.h"
 
 class IDgen : LOG {

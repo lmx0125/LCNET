@@ -10,6 +10,8 @@
 #include <sys/socket.h>  // Linux cpp headers
 #include <netinet/in.h>  // Linux cpp headers
 #include <arpa/inet.h>   // Linux cpp headers
+#include <netdb.h>		 // Linux cpp headers
+#include <fcntl.h>		 // Linux cpp headers
 #endif
 
 #include <iostream>

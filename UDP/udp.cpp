@@ -50,13 +50,13 @@ void UDP::up(UINT port) {
 	if (ioctlsocket(sock, FIONBIO, &on) != 0)
 		Show_log(_ERROR, "can not set non-blocking mode");
 #else
-	int flag = fcntl(sock, F_GETFL, 0);  //取标志
+	int flag = fcntl(sock, F_GETFL, 0);
 	if (flag < 0) {
-		Perror("fcntl F_GETFL fail");
+		perror("fcntl F_GETFL fail");
 		return;
 	}
-	if (fcntl(sock, F_SETFL, flag | O_NONBLOCK) < 0) {  //设置标志
-		Perror("fcntl F_SETFL fail");
+	if (fcntl(sock, F_SETFL, flag | SOCK_NONBLOCK) < 0) {
+		perror("fcntl F_SETFL fail");
 	}
 #endif
 }
