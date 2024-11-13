@@ -8,6 +8,10 @@
 const uint32_t MAGIC_COOKIE = 0x2112A442;
 #define STUN_HEADER_SIZE 20
 
+#ifndef ARRAYSIZE
+#define ARRAYSIZE(arr) (sizeof(arr)/sizeof((arr)[0]))  // Macro to calculate number of elements in array
+#endif
+
 enum message_type {
     Binding_Request = 0x0001,
     Binding_Response = 0x0101,

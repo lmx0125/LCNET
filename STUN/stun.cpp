@@ -18,7 +18,6 @@ void STUN::build_stun_package_header(uint16_t msg_type, uint16_t att_type) {
 	gen_transaction_id();
 	for (size_t i = 0; i < 12; i++)
 		header[i + 8] = transaction_id[i];
-	Sleep(1);
 }
 
 void STUN::gen_transaction_id() {
