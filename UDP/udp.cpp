@@ -45,6 +45,8 @@ void UDP::up(UINT port) {
 	callback_func = default_recv_callback_func;
 	set_auto_disconnect_time(5);
 
+#ifdef _USE_NON_BLOCKING_MODE
+
 #ifdef _WIN32
 	unsigned long on = 1;
 	if (ioctlsocket(sock, FIONBIO, &on) != 0)
@@ -58,6 +60,8 @@ void UDP::up(UINT port) {
 	if (fcntl(sock, F_SETFL, flag | SOCK_NONBLOCK) < 0) {
 		perror("fcntl F_SETFL fail");
 	}
+#endif
+
 #endif
 }
 
@@ -170,7 +174,7 @@ void UDP::recv_service() {
 	timeout_time.tv_sec = 1;
 	timeout_time.tv_usec = 0;
 
-	if (setsockopt(sock,SOL_SOCKET,SO_RCVTIMEO,(char*)&timeout_time,sizeof(timeout_time)) != 0) {
+	if (setsockopt(sock,SOL_SOCKET,SO_RCVTIMEO,(char*) & timeout_time, sizeof(timeout_time)) != 0) {
 		Show_log(_ERROR, "can not set socket recv mode");
 	}
 
@@ -219,10 +223,12 @@ void UDP::recv_service() {
 			mtx.lock();
 			device = std::make_shared<device_struct>(*device_list[get_device_no_from_addr(device->sock_addr)]);
 			mtx.unlock();
-			device->status.last_recv_time = time(nullptr);
 		}
-		device->data.data_CS.push_back(buffer);
-		device->status.last_recv_time = time(nullptr);
+
+		mtx.lock();
+		device_list[get_device_no_from_addr(device->sock_addr)]->data.data_CS.push_back(buffer);
+		device_list[get_device_no_from_addr(device->sock_addr)]->status.last_recv_time = time(nullptr);
+		mtx.unlock();
 
 		//invoke the callback func
 		this->callback_func(buffer, err, device.get(), 0, this, pass_parameter);
@@ -302,13 +308,11 @@ void UDP::package_auto_cleanup(ul ID) {
 	}
 
 	while (true) {
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		if (device->is_main_thread_terminated)
 			return; 
-		if (device->status.last_recv_time < time(nullptr) - this->auto_disconnect_time) {
-			std::this_thread::sleep_for(std::chrono::seconds(1));
+		if (device->status.last_recv_time < time(nullptr) - this->auto_disconnect_time)
 			break;
-		}
 	}
 
 	package_cleanup(device);
