@@ -6,6 +6,10 @@ NET::~NET() {
 #endif
 }
 
+void sig(int si) {
+	std::cout << "aaa" << si;
+}
+
 NET::NET(int port, int udp_port) {
 	//Set exit signal
 	signal(SIGABRT,&NET::Cleanup);

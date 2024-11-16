@@ -49,12 +49,7 @@ void STUN::send_stun_bind_request(const char* addr, UINT port) {
 void STUN::stun_recv_callback(char* data, long buffer_size, device_struct*, int status, UDP* udp, std::vector<void*> else_parameter) {
 	STUN* stun = (STUN*)(else_parameter[1]);
 	memcpy(else_parameter[0], data, buffer_size);
-	//else_parameter[0] = (uint8_t*)data;
 	uint8_t* test_array = (uint8_t*)data;
-	//for (long i = 0; i < buffer_size; i++) {
-	//	std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(test_array[i]) << " ";
-	//}
-	std::cout << std::endl;
 	stun->stun_callback_clear();
 }
 

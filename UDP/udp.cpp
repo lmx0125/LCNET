@@ -161,21 +161,20 @@ void UDP::recv_service() {
 	Show_log(_DEBU, "recv_service_udp is running");
 
 #ifdef _WIN32
-	int sockaddr_size = sizeof(sockaddr), err, device_no = 0;
+	int sockaddr_size = sizeof(sockaddr), err = 0, device_no = 0;
 #else
-	socklen_t sockaddr_size = sizeof(sockaddr), err, device_no = 0;
+	socklen_t sockaddr_size = sizeof(sockaddr), err = 0, device_no = 0;
 #endif
 
 	timeval timeout_time;
-	timeout_time.tv_sec = 0;
-	timeout_time.tv_usec = 1000;
+	timeout_time.tv_sec = 1;
+	timeout_time.tv_usec = 0;
 
 	if (setsockopt(sock,SOL_SOCKET,SO_RCVTIMEO,(char*)&timeout_time,sizeof(timeout_time)) != 0) {
 		Show_log(_ERROR, "can not set socket recv mode");
 	}
 
 	while (recv_service_status) {
-		device->ID = 0;
 		while (true) {
 			err = recvfrom(
 				sock,
@@ -190,10 +189,9 @@ void UDP::recv_service() {
 				Show_log(_DEBU, "auto recv thread is terminating");
 				return;
 			}
-			if (err > 0)
+			if ((int)err > 0)
 				break;
 		}
-
 
 		buffer[err] = '\0';
 		
@@ -219,7 +217,7 @@ void UDP::recv_service() {
 			Show_log(_MSG, str);
 		} else {
 			mtx.lock();
-			device.reset(device_list[get_device_no_from_addr(device->sock_addr)]);
+			device = std::make_shared<device_struct>(*device_list[get_device_no_from_addr(device->sock_addr)]);
 			mtx.unlock();
 			device->status.last_recv_time = time(nullptr);
 		}
