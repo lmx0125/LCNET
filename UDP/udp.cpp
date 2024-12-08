@@ -1,18 +1,19 @@
 #include "udp.h"
 
 UDP::~UDP() {
-	//disconnect (delete) all device
-	while (device_list.size()) {
-		Show_log(_DEBU, "is destory device | ID > " + std::to_string(device_list[0]->ID));
-		delete_device(device_list[0]->ID);
-	}
 
 	//wait for all thread determinated
 	should_recv_service_terminate = true;
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-	while (clean_up_threads.size())
+	while (clean_up_threads.size() > 0)
 		clean_up_threads[0].join();
+
+	//disconnect (delete) all device
+	while (device_list.size()) {
+		Show_log(_DEBU, "is destory device | ID > " + std::to_string(device_list[0]->ID));
+		delete_device(device_list[0]->ID);
+	}
 
 	delete buffer;
 }
@@ -27,6 +28,7 @@ void UDP::up(UINT port) {
 	listen_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	listen_addr.sin_family = AF_INET;
 	listen_addr.sin_port = htons(port);
+	PORT = port;
 
 	bind(
 		sock,
@@ -174,8 +176,16 @@ void UDP::recv_service() {
 	timeout_time.tv_sec = 1;
 	timeout_time.tv_usec = 0;
 
-	if (setsockopt(sock,SOL_SOCKET,SO_RCVTIMEO,(char*) & timeout_time, sizeof(timeout_time)) != 0) {
-		Show_log(_ERROR, "can not set socket recv mode");
+
+	if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout_time, sizeof(timeout_time)) != 0) {
+		std::string log("can not set socket recv mode | ");
+#ifdef _WIN32
+		log += std::to_string(GetLastError());
+#else
+		extern int errno;
+		log += strerror(errno);
+#endif
+		Show_log(_ERROR, log);
 	}
 
 	while (recv_service_status) {
@@ -183,7 +193,7 @@ void UDP::recv_service() {
 			err = recvfrom(
 				sock,
 				buffer,
-				4096,
+				25565,
 				0,
 				(sockaddr*)&device->sock_addr,
 				&sockaddr_size
@@ -225,10 +235,8 @@ void UDP::recv_service() {
 			mtx.unlock();
 		}
 
-		mtx.lock();
-		device_list[get_device_no_from_addr(device->sock_addr)]->data.data_CS.push_back(buffer);
-		device_list[get_device_no_from_addr(device->sock_addr)]->status.last_recv_time = time(nullptr);
-		mtx.unlock();
+		device->data.data_CS.push_back(buffer);
+		device->status.last_recv_time = time(nullptr);
 
 		//invoke the callback func
 		this->callback_func(buffer, err, device.get(), 0, this, pass_parameter);
@@ -294,7 +302,7 @@ void UDP::package_auto_cleanup(ul ID) {
 	//Show_log(_DEBU, "clean thread is running | ID > " + std::to_string(ID));
 	std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	mtx.lock();
-	//check is device invalid
+	//check is device valid
 	long long device_no = get_device_no_from_id(ID);
 	if (device_no == -1) {
 		this->mtx.unlock();

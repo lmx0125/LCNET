@@ -17,10 +17,13 @@ NET::NET(int port, int udp_port) {
 
 #ifdef _WIN32
 	//WSA init
-	WSAStartup(
+	err = WSAStartup(
 		MAKEWORD(2, 0),
 		&wsaData
 	);
+
+	if (err != 0)
+		Show_log(_ERROR, "WSAStartup error");
 #endif //_WIN32
 
 	//Socket init

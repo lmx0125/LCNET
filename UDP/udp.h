@@ -26,10 +26,10 @@
 #include <thread>
 #include <string>
 #include <cstring>
+#include <cerrno>
 #include "../log/log.h"
 #include "../IDgen/IDgen.h"
 
-//define something here
 class UDP;
 
 #ifndef _NET_TYPE_
@@ -87,8 +87,6 @@ struct device_struct {
 				this->data.data_CS.begin(),
 				this->data.data_CS.end()
 			);
-		//log.Show_log(_DEBU, "device_struct release");
-		//printf("[DELETE] address > %p\n", this);
 	}
 };
 #endif
@@ -131,6 +129,7 @@ public:
 		pass_parameter.push_back(argv);
 	}
 
+	int PORT;
 	std::vector<void*> pass_parameter;
 	sockaddr_in listen_addr;
 	SOCKET sock;
