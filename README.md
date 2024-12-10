@@ -20,7 +20,7 @@ A lib can make net connection easier!<br>
 > other modules like p2p needs include other head file ( like p2p/p2p.h ) <br>
 > If you are using visual studio or etc., you may link ws2_32.lib
 
-2. **Build it**
+3. **Build it**
 
 > use msvc and g++ or etc. to build it<br>
 > (g++ needs to add all cpp files by your self)
